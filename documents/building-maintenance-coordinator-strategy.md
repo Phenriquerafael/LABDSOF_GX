@@ -58,11 +58,11 @@ The assignment requires a non-AI baseline **or** fallback. We propose both to ev
 
 ## 5. Proposed technical direction
 
-Two independently deployable backend components: **Issue Service** (issues, triage and history) and **Dispatch Service** (contractors and interventions), with asynchronous processing. Stack, queue and deployment to be decided in [ADR-001](adr/ADR-001-backend-boundaries.md) and DEC-04.
+Two independently deployable backend components: **Issue Service** (issues, triage and history) and **Dispatch Service** (contractors and interventions), with asynchronous processing. Stack, asynchronous mechanism and deployment are proposed in [ADR-001–006](adr/README.md) (DEC-04, team review pending).
 
 Proposed integration: a calendar with a realistic simulator as the initial planning option; provider and final implementation in DEC-06. A modular monolith requires justification and lecturer acceptance; this exception has not already been granted.
 
-Mock authentication is permitted for the MVP. Authorisation by role, building and intervention remains enforced and tested. See [security](09-security-privacy.md).
+Mock authentication is permitted for the MVP; the team proposes a small own login instead ([ADR-005](adr/ADR-005-authentication-authorisation.md)). Authorisation by role, building and intervention remains enforced and tested. See [security](09-security-privacy.md).
 
 ## 6. Execution
 

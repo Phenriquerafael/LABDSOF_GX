@@ -1,25 +1,25 @@
 # Technical Design
 
-**Status:** proposed conceptual design · Sprint 1, deliverable 7 · final stack and contracts pending
+**Status:** proposed conceptual design · Sprint 1, deliverable 7 · stack proposed in ADR-001–006 (EN-01-01, 2026-10-15; team review pending) · executable contracts pending
 
 ## 1. Context and boundaries
 
-Residents, administrators and contractors use a proposed responsive web client. The backend coordinates issues and interventions, calls an AI provider and integrates an external calendar or simulator. Client/stack selection is part of DEC-04; it is not implemented.
+Residents, administrators and contractors use a proposed responsive web client (React + Vite SPA, installable PWA shell, Tailwind). The backend coordinates issues and interventions, calls an AI provider and integrates an external calendar simulator. The proposed stack is in [ADR-002](adr/ADR-002-technology-stack.md) (DEC-04); it is not implemented.
 
 | Proposed unit | Responsibility / data it controls | Communication |
 |---|---|---|
-| Client | Forms, queues, states and corrections; no authority over permissions | Authenticated API |
-| Issue Service | Buildings/memberships for authorisation, reports, issues, triage, summaries and confirmations | API; publishes events; receives authorised results |
-| Dispatch Service | Catalogue, proposals, responses, bookings and costs | API; events; calendar adapter |
-| Triage worker | Processes events, calls AI/rules, delivers versioned suggestions | Queue and internal Issue Service interface; does not write to other components' tables |
-| Notification worker | Delivers idempotent notifications; final placement undecided | State events; proposed in-app channel |
-| Broker | Transport and redelivery | Authenticated publishing/consumption |
-| Storage | Persistence; one proposed technology to limit complexity | Schemas and credentials by responsibility |
-| Calendar/simulator | Booking creation/query responses and simulatable failures | External contract with reference and idempotency key |
+| Client | Forms, queues, states and corrections; no authority over permissions | Authenticated API through the nginx single origin |
+| Issue Service | Users/credentials, buildings/memberships for authorisation, reports, issues, triage jobs and suggestions, summaries, confirmations, audit and in-app notifications | API; outbox events; internal triage-job API |
+| Dispatch Service | Catalogue, proposals, responses, bookings and costs | API; outbox events; calendar adapter |
+| Triage worker | Claims triage jobs, calls AI/rules, delivers versioned suggestions | Internal Issue Service API only; no database credentials |
+| Notification module | Delivers idempotent in-app notifications; proposed as a module of the Issue Service for the MVP | State events; in-app channel (DEC-06) |
+| Outbox and relay | Transport and redelivery without a broker ([ADR-003](adr/ADR-003-async-workflow-without-broker.md)) | Outbox/job tables in the owner's database; authenticated internal endpoints |
+| Storage | MySQL 9.7: one instance, databases `issue` and `dispatch` | One database user per service; no cross-database access |
+| Calendar simulator | Booking creation/query responses and simulatable failures; in-memory state ([ADR-006](adr/ADR-006-calendar-simulator.md)) | External contract with reference and idempotency key |
 
-Issue and Dispatch are the **two proposed independently deployable backend components**. Workers may have their own processes; final grouping depends on ADR/DEC-04. Do not use a simulator as an artificial substitute for a business component.
+Issue and Dispatch are the **two proposed independently deployable backend components** ([ADR-001](adr/ADR-001-backend-boundaries.md)); the triage worker and the simulator run as their own containers. No modular-monolith exception is requested. Do not use a simulator as an artificial substitute for a business component.
 
-One database instance may host separate schemas in the academic environment; this does not authorise cross-writing. Make the shared operational dependency and compatible migrations explicit. Technology, queue and service-to-service authentication are undecided.
+One MySQL instance hosts a separate database per service in the academic environment; this does not authorise cross-writing. The shared instance and host are operational dependencies and single points of failure; migrations stay compatible so each service deploys independently. Service-to-service authentication is proposed in [ADR-005](adr/ADR-005-authentication-authorisation.md).
 
 ## 2. Domain model
 
@@ -81,16 +81,16 @@ Define OpenAPI contracts/schemas after stack selection: 400/401/403 errors or 40
 
 ## 5. Asynchronous workflow and consistency
 
-1. Issue persists the report/issue and event record in the same transaction (proposed outbox).
-2. The publisher sends ReportSubmitted; broker failure preserves the event for retry.
+1. Issue persists the report/issue, a triage job and an outbox record in the same transaction.
+2. The triage worker claims the job through Issue's internal API (Issue uses `SELECT … FOR UPDATE SKIP LOCKED` with a lease); a worker failure returns the job to the queue after the lease expires.
 3. The worker validates schema, ID and version and applies the [AI/baseline/fallback workflow](07-responsible-ai-assessment.md#2-baseline-and-fallback), with the timeout defined in NFR-03.
 4. The result reaches Issue's authorised internal interface; an old result does not replace a human correction.
-5. Change events feed projections/notifications; consumers deduplicate by eventId.
+5. Change events feed projections/notifications; a relay delivers outbox rows to the other service's internal endpoint; receivers deduplicate by eventId in the same transaction as the effect.
 6. Dispatch manages approval/acceptance and issues a calendar request only when eligible.
 
 Proposed envelope: eventId, eventType, schemaVersion, aggregateId, aggregateVersion, buildingId, occurredAt, correlationId and minimal payload. Received building identifiers are also validated; they do not suffice as authorisation.
 
-Retries use increasing delays and a configured limit; exhausted attempts go to a failure record/queue with controlled replay. Test crashes after persistence and before publication, repeated delivery and out-of-order events. Do not promise “exactly once” delivery; build idempotent effects.
+No broker is used in the MVP ([ADR-003](adr/ADR-003-async-workflow-without-broker.md)). Retries use increasing delays and a configured limit; exhausted attempts mark the row `failed` (dead-letter equivalent) with controlled replay. Test crashes after persistence and before publication, repeated delivery and out-of-order events. Do not promise “exactly once” delivery; build idempotent effects.
 
 ## 6. External integration and degraded mode
 
@@ -98,20 +98,20 @@ The calendar/simulator must support requests with stable IDs, query/reconciliati
 
 Timeout may occur after the external event is created; query/reconcile before retrying. Manual confirmation remains distinct from external synchronisation and suspends duplicate automatic creation until reconciliation. A calendar slot alone does not prove contractor availability.
 
-AI unavailable: rules + manual review. Broker/worker unavailable: persisted report and pending/manual triage. Calendar unavailable: pending/manual. Notification failure: status remains queryable. Database unavailable: explicit error without false acknowledgement.
+AI unavailable: rules + manual review. Worker or relay unavailable: persisted report, job or outbox row stays pending; manual triage remains possible. Calendar unavailable: pending/manual. Notification failure: status remains queryable. Database unavailable: explicit error without false acknowledgement.
 
 ## 7. Proposed deployment and operations
 
-- Containers: client, Issue, Dispatch, workers, broker, database and simulator according to the profile.
-- Expose only necessary endpoints; database/broker on an internal network.
+- Containers ([ADR-004](adr/ADR-004-deployment-contract.md)): nginx client/reverse proxy, Issue, Dispatch, triage worker, calendar simulator and MySQL; optional `observability` profile. Images for amd64 and arm64; one `compose.yaml`; any Docker host.
+- Expose only nginx; database and internal endpoints on an internal network.
 - Configuration per environment; secrets injected outside Git; least-privilege service identities.
-- CI builds/tests/images; demonstration environment to be chosen (DEC-04); no Kubernetes commitment.
+- GitHub Actions builds, tests (with a MySQL 9.7 service container) and publishes images to GHCR; deployment is `docker compose pull && up -d`; demonstration host still to be chosen; no Kubernetes commitment.
 - Migrations owned by each schema owner, health/readiness and compatible versions for independent deployment.
-- Structured logs with correlation ID; metrics for errors, latency, queue, retries, fallback, pending bookings and failed notifications.
-- Initial dashboard in S2; backup/restore and rollback documented/exercised before release.
+- JSON structured logs with a correlation ID carried in HTTP headers and outbox events; `/health` and `/ready` per service; Prometheus metrics for errors, latency, outbox lag, triage job age, retries, failed rows, fallback, pending bookings and failed notifications.
+- Grafana dashboard in the optional profile, initial version in S2; backup/restore and rollback documented/exercised before release.
 
 ## 8. Gaps and validation
 
-Undecided: stack, broker, database, hosting, identity, publishing mechanism, final schemas and detailed rescheduling/cancellation handling. Record alternatives and consequences in [ADRs](adr/README.md). The physical data model and executable contracts do not yet exist.
+Proposed in [ADR-001–006](adr/README.md) (team review pending): boundaries, stack, database, asynchronous mechanism, deployment contract, identity and calendar simulator. Still undecided: demonstration host, AI provider/model (DEC-05), accessible component library, final schemas and detailed rescheduling/cancellation handling; see the [unresolved details](planning/decisions-and-feedback.md#5-en-01-01-unresolved-details). The physical data model and executable contracts do not yet exist.
 
 See [requirements](requirements.md), [security](09-security-privacy.md) and [walking skeleton](10-walking-skeleton.md).

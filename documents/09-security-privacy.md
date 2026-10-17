@@ -4,7 +4,7 @@
 
 ## 1. Context and assets
 
-Assets: identity/membership, private text, published summary, location, proposals, schedules, costs, credentials, events and history. Boundaries: client→API, service→service, broker, database, AI/calendar provider and research repository.
+Assets: identity/membership, private text, published summary, location, proposals, schedules, costs, credentials, events and history. Boundaries: client→API, service→service, outbox relay and internal endpoints (no broker proposed, [ADR-003](adr/ADR-003-async-workflow-without-broker.md)), database, AI/calendar provider and research repository.
 
 The MVP uses synthetic demonstration data. Real interviews still require a purpose, participation permission and their own data management. This proposal does not claim legal compliance; legal issues and institutional policies need appropriate review before a real pilot.
 
@@ -23,7 +23,7 @@ The MVP uses synthetic demonstration data. Real interviews still require a purpo
 | Close/reopen | No | With reason according to transition | Reports completion, without closing |
 | Data from another building/request | No | Only if explicitly authorised | No |
 
-Check in the backend for each operation; hiding buttons is insufficient. Mock authentication identifies predefined test users, but does not allow the client to choose arbitrary privileges. Internal services are also authenticated/authorised.
+Check in the backend for each operation; hiding buttons is insufficient. The proposed own login ([ADR-005](adr/ADR-005-authentication-authorisation.md); a mock would also be allowed by §6.6) identifies seeded or invited users, and does not allow the client to choose arbitrary privileges. Internal services are also authenticated/authorised.
 
 ## 3. Threats and checks
 
