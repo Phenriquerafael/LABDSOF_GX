@@ -45,7 +45,7 @@ File numbering matches the assignment deliverables; document 08 links to the ADR
 | [05 — Product Backlog](documents/05-product-backlog.md) | 5 | Proposed epics, criteria and MoSCoW | Prioritise with stakeholders, estimate and assign |
 | [Functional requirements and NFRs](documents/requirements.md) | Supports 4/5/7 | Initial list | Validate needs and targets |
 | [06 — Responsible AI Assessment](documents/06-responsible-ai-assessment.md) | 6 | Workflow and evaluation proposal | Validated need, provider, dataset and criteria |
-| [07 — Technical Design](documents/07-technical-design.md) | 7 | Conceptual model and initial contracts | Stack, details and technical decisions |
+| [07 — Technical Design](documents/07-technical-design.md) | 7 | Domain model, state rules and contract outlines (EN-01-02 proposal) with [contract examples](documents/07a-contract-examples.md) | Stack decisions (EN-01-01), rule validation (DEC-10) and executable contracts |
 | [08 — Architecture Decision Records](documents/08-architecture-decision-records.md) / [ADR-001](documents/adr/ADR-001-backend-boundaries.md) | 8 | One proposed ADR | Choices and consequences accepted with evidence |
 | [09 — Security and privacy](documents/09-security-privacy.md) | 9 | Initial assessment | Policies/review; controls in implementation |
 | [10 — Walking Skeleton](documents/10-walking-skeleton.md) | 10, optional per evaluator | Not selected for Sprint 1 (DEC-11) | Plan retained for later implementation; not a Sprint 1 blocker |

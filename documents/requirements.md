@@ -1,6 +1,6 @@
 # Initial requirements and quality attributes
 
-**Status:** proposal v0.2 · Sprint 1, Phases 2–3 · reviewed 2026-10-19 (DISC-03-03) · validation pending
+**Status:** proposal v0.3 · Sprint 1, Phases 2–3 · reviewed 2026-10-19 (DISC-03-03, EN-01-02) · validation pending
 
 Sources: [assignment](../LABDSOF-26-27-Assignment.md), [hypotheses P1–P7](01-problem-and-opportunity-report.md), [secondary findings PS-01–PS-08](03-user-research.md#72-findings) and [vision J1–J3](04-product-vision.md). No requirements have yet been confirmed through interviews; PS findings support workflow concepts only. “Must” in the backlog is a proposed priority for the academic release, not customer approval.
 
@@ -30,29 +30,29 @@ The numerical targets below are proposals for discussion (DEC-08), not results o
 
 | ID | Quality / scenario | Proposed verification criterion | Items |
 |---|---|---|---|
-| NFR-01 | Authorisation and isolation | All tests of the author/admin/contractor/other-building matrix deny unauthorised backend access; mock identity does not remove authorisation | US-01–US-11, EN-03 |
+| NFR-01 | Authorisation and isolation | All tests of the author/admin/contractor/other-building matrix deny unauthorised backend access; mock identity does not remove authorisation; Dispatch denies administrator commands when Issue's authorisation context is unavailable ([Technical Design Section: 4.3](07-technical-design.md#43-how-dispatch-obtains-trustworthy-authorisation-context)) | US-01–US-11, EN-03 |
 | NFR-02 | Privacy | Synthetic demo data; payloads/logs exclude unnecessary personal fields; retention and deletion defined before real collection | DISC-01, EN-01/03 |
 | NFR-03 | AI resilience | Reporting works with AI disabled; proposed timeout of 10 s per attempt; visible fallback/pending state and manual correction available | US-03, EN-03 |
-| NFR-04 | Asynchronous delivery | Redelivery of the same event does not duplicate effects; limited retries and observable final failure; test crashes between persistence and publication | US-03/08/10, EN-03 |
+| NFR-04 | Asynchronous delivery | Redelivery of the same event does not duplicate effects; limited retries and observable final failure; test crashes between persistence and publication; starting retry, lease and retention values in [Technical Design Section: 4.6](07-technical-design.md#46-retry-timeout-and-lease-values-proposal) | US-03/08/10, EN-03 |
 | NFR-05 | Performance | Proposal: p95 ≤ 2 s for reporting/viewing, 10 concurrent users and 1,000 synthetic issues; exclude external AI time and document hardware | EN-03/04 |
 | NFR-06 | Observability | Structured logs, health checks, metrics, correlation ID and traceable errors in a dashboard; demonstrate one complete path | EN-02/03 |
 | NFR-07 | Usability/accessibility | Keyboard journeys, visible focus, labels and understandable errors, status not conveyed by colour alone; reporting task in ≤ 2 min as a target to validate | US-01/02, EN-04 |
 | NFR-08 | Delivery and maintenance | Reproducible builds, containers, tests/CI, configuration without secrets in Git, instructions and exercised recovery | EN-02/03 |
 | NFR-09 | Persistence/recovery | Issues survive restart; backup/restore exercise with counts and integrity checks; RPO/RTO proposed after the environment is known | EN-02/03 |
 | NFR-10 | AI quality/cost | Traceable dataset and versions; per-class metrics, latency and cost; budget and limits defined before Ready | US-03, EN-04 |
-| NFR-11 | Integration | Failure/delay/incomplete or invalid data produces no false confirmation; repetition does not duplicate bookings | US-08, EN-03 |
+| NFR-11 | Integration | Failure/delay/incomplete or invalid data produces no false confirmation; repetition does not duplicate bookings; uncertain outcomes are reconciled by request ID before any re-send ([Technical Design Section: 4.5](07-technical-design.md#45-calendarsimulator-contract-outline)) | US-08, EN-03 |
 
 ## Priorities, acceptance and traceability
 
 The [backlog](05-product-backlog.md) contains proposed MoSCoW priorities and item-level criteria. A need identified through research must reference E/F in the evidence register and update this table. A significant technical change requires an ADR.
 
-Model and states: [technical design](07-technical-design.md). Access/data policies: [security](09-security-privacy.md).
+Model, states, transition rules and contract outlines: [Technical Design Sections: 2–4](07-technical-design.md#2-domain-model-and-data-ownership), with examples in the [contract annex](07a-contract-examples.md). Access/data policies: [security](09-security-privacy.md).
 
 ## Open decisions
 
 - Technical targets and environment (DEC-08). The primary product threshold is proposed in [vision §5.1](04-product-vision.md#51-primary-success-criterion-dec-08).
 - Visible data, retention and ways to request deletion (DEC-07).
-- Scheduling and closure business rules (DEC-10); step definitions proposed in vision §4.3, validation with administrators and contractors pending.
+- Scheduling and closure business rules (DEC-10); step definitions proposed in vision §4.3 and transition, cancellation and concurrency rules in [Technical Design Section: 3](07-technical-design.md#3-states-and-business-rules) (EN-01-02); rescheduling after a booking confirmation and contractor withdrawal remain open; validation with administrators and contractors pending.
 - Support for private reports about individual units in the pilot; the baseline keeps raw reports restricted.
 - Assisted access for residents without digital access, to investigate before expanding the MVP.
 

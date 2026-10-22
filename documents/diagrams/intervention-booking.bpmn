@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_booking" targetNamespace="https://github.com/Phenriquerafael/LABDSOF_GX/bpmn" exporter="LABDSOF_GX EN-01-02 generator" exporterVersion="1">
+  <bpmn:collaboration id="Collab_booking">
+    <bpmn:participant id="P_bmc" name="BMC — booking, execution and closure (owner: Dispatch Service)" processRef="Process_booking" />
+    <bpmn:participant id="P_issue" name="Issue Service" />
+    <bpmn:participant id="P_cal" name="Calendar simulator (external system)" />
+    <bpmn:messageFlow id="M_d_book_P_cal" name="booking request" sourceRef="d_book" targetRef="P_cal" />
+    <bpmn:messageFlow id="M_d_recon_P_cal" sourceRef="d_recon" targetRef="P_cal" />
+    <bpmn:messageFlow id="M_P_cal_d_recon" name="query / answer" sourceRef="P_cal" targetRef="d_recon" />
+    <bpmn:messageFlow id="M_d_booked_P_issue" name="booking confirmed" sourceRef="d_booked" targetRef="P_issue" />
+    <bpmn:messageFlow id="M_d_compl_P_issue" name="completion reported" sourceRef="d_compl" targetRef="P_issue" />
+    <bpmn:messageFlow id="M_P_issue_d_resolved" name="issue resolved or cancelled" sourceRef="P_issue" targetRef="d_resolved" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_booking" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="L_adm" name="Administrator">
+        <bpmn:flowNodeRef>a_handle</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_dec</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_cancel</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_manual</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_review</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_rework</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>S_cancel</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_con" name="Contractor">
+        <bpmn:flowNodeRef>c_work</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>c_done</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_dis" name="Dispatch Service">
+        <bpmn:flowNodeRef>d_start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_book</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_wait</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_confl</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_conf</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_to</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_recon</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_found</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>merge1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>merge2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_booked</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_compl</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_resolved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_close</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_end</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="d_start" name="Version agreed">
+      <bpmn:outgoing>F_d_start_d_book</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sendTask id="d_book" name="Send booking request [scheduling_pending]">
+      <bpmn:incoming>F_d_start_d_book</bpmn:incoming>
+      <bpmn:incoming>F_d_found_d_book</bpmn:incoming>
+      <bpmn:incoming>F_a_dec_d_book</bpmn:incoming>
+      <bpmn:outgoing>F_d_book_d_wait</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:eventBasedGateway id="d_wait" name="">
+      <bpmn:incoming>F_d_book_d_wait</bpmn:incoming>
+      <bpmn:outgoing>F_d_wait_d_confl</bpmn:outgoing>
+      <bpmn:outgoing>F_d_wait_d_conf</bpmn:outgoing>
+      <bpmn:outgoing>F_d_wait_d_to</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:intermediateCatchEvent id="d_confl" name="Conflict [rejected]">
+      <bpmn:incoming>F_d_wait_d_confl</bpmn:incoming>
+      <bpmn:outgoing>F_d_confl_merge1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ED_d_confl" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="d_conf" name="Valid confirmation">
+      <bpmn:incoming>F_d_wait_d_conf</bpmn:incoming>
+      <bpmn:outgoing>F_d_conf_merge2</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ED_d_conf" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="d_to" name="5 s timeout or invalid answer [uncertain]">
+      <bpmn:incoming>F_d_wait_d_to</bpmn:incoming>
+      <bpmn:outgoing>F_d_to_d_recon</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="ED_d_to" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:serviceTask id="d_recon" name="Reconcile: query by request ID">
+      <bpmn:incoming>F_d_to_d_recon</bpmn:incoming>
+      <bpmn:outgoing>F_d_recon_d_found</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="d_found" name="Booking found?">
+      <bpmn:incoming>F_d_recon_d_found</bpmn:incoming>
+      <bpmn:outgoing>F_d_found_merge2</bpmn:outgoing>
+      <bpmn:outgoing>F_d_found_d_book</bpmn:outgoing>
+      <bpmn:outgoing>F_d_found_merge1</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="merge1" name="">
+      <bpmn:incoming>F_d_confl_merge1</bpmn:incoming>
+      <bpmn:incoming>F_d_found_merge1</bpmn:incoming>
+      <bpmn:outgoing>F_merge1_a_handle</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="a_handle" name="Review the scheduling problem">
+      <bpmn:incoming>F_merge1_a_handle</bpmn:incoming>
+      <bpmn:outgoing>F_a_handle_a_dec</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="a_dec" name="Next step?">
+      <bpmn:incoming>F_a_handle_a_dec</bpmn:incoming>
+      <bpmn:outgoing>F_a_dec_a_manual</bpmn:outgoing>
+      <bpmn:outgoing>F_a_dec_d_book</bpmn:outgoing>
+      <bpmn:outgoing>F_a_dec_a_cancel</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="a_cancel" name="Cancel requested">
+      <bpmn:incoming>F_a_dec_a_cancel</bpmn:incoming>
+      <bpmn:signalEventDefinition id="ED_a_cancel" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="a_manual" name="Confirm booking manually (window, source, reason)">
+      <bpmn:incoming>F_a_dec_a_manual</bpmn:incoming>
+      <bpmn:outgoing>F_a_manual_merge2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="merge2" name="">
+      <bpmn:incoming>F_d_conf_merge2</bpmn:incoming>
+      <bpmn:incoming>F_a_manual_merge2</bpmn:incoming>
+      <bpmn:incoming>F_d_found_merge2</bpmn:incoming>
+      <bpmn:outgoing>F_merge2_d_booked</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="d_booked" name="Store booking [booked]">
+      <bpmn:incoming>F_merge2_d_booked</bpmn:incoming>
+      <bpmn:outgoing>F_d_booked_c_work</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="c_work" name="Do the work (start optional) [in_progress]">
+      <bpmn:incoming>F_d_booked_c_work</bpmn:incoming>
+      <bpmn:incoming>F_a_rework_c_work</bpmn:incoming>
+      <bpmn:outgoing>F_c_work_c_done</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="c_done" name="Submit completion report (cost if known)">
+      <bpmn:incoming>F_c_work_c_done</bpmn:incoming>
+      <bpmn:outgoing>F_c_done_d_compl</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="d_compl" name="Store completion report [completion_reported]">
+      <bpmn:incoming>F_c_done_d_compl</bpmn:incoming>
+      <bpmn:outgoing>F_d_compl_a_review</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="a_review" name="Review the completion report">
+      <bpmn:incoming>F_d_compl_a_review</bpmn:incoming>
+      <bpmn:outgoing>F_a_review_a_ok</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="a_ok" name="Acceptable?">
+      <bpmn:incoming>F_a_review_a_ok</bpmn:incoming>
+      <bpmn:outgoing>F_a_ok_a_rework</bpmn:outgoing>
+      <bpmn:outgoing>F_a_ok_d_resolved</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="a_rework" name="Request rework with a reason">
+      <bpmn:incoming>F_a_ok_a_rework</bpmn:incoming>
+      <bpmn:outgoing>F_a_rework_c_work</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:receiveTask id="d_resolved" name="Receive issue resolved or cancelled (Figure 2)">
+      <bpmn:incoming>F_a_ok_d_resolved</bpmn:incoming>
+      <bpmn:outgoing>F_d_resolved_d_close</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:serviceTask id="d_close" name="Close intervention [closed]">
+      <bpmn:incoming>F_d_resolved_d_close</bpmn:incoming>
+      <bpmn:outgoing>F_d_close_d_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="d_end" name="Intervention closed">
+      <bpmn:incoming>F_d_close_d_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="F_d_start_d_book" sourceRef="d_start" targetRef="d_book" />
+    <bpmn:sequenceFlow id="F_d_book_d_wait" sourceRef="d_book" targetRef="d_wait" />
+    <bpmn:sequenceFlow id="F_d_wait_d_confl" sourceRef="d_wait" targetRef="d_confl" />
+    <bpmn:sequenceFlow id="F_d_wait_d_conf" sourceRef="d_wait" targetRef="d_conf" />
+    <bpmn:sequenceFlow id="F_d_wait_d_to" sourceRef="d_wait" targetRef="d_to" />
+    <bpmn:sequenceFlow id="F_d_conf_merge2" sourceRef="d_conf" targetRef="merge2" />
+    <bpmn:sequenceFlow id="F_d_confl_merge1" sourceRef="d_confl" targetRef="merge1" />
+    <bpmn:sequenceFlow id="F_d_to_d_recon" sourceRef="d_to" targetRef="d_recon" />
+    <bpmn:sequenceFlow id="F_d_recon_d_found" sourceRef="d_recon" targetRef="d_found" />
+    <bpmn:sequenceFlow id="F_merge1_a_handle" sourceRef="merge1" targetRef="a_handle" />
+    <bpmn:sequenceFlow id="F_a_handle_a_dec" sourceRef="a_handle" targetRef="a_dec" />
+    <bpmn:sequenceFlow id="F_a_manual_merge2" sourceRef="a_manual" targetRef="merge2" />
+    <bpmn:sequenceFlow id="F_merge2_d_booked" sourceRef="merge2" targetRef="d_booked" />
+    <bpmn:sequenceFlow id="F_d_booked_c_work" sourceRef="d_booked" targetRef="c_work" />
+    <bpmn:sequenceFlow id="F_c_work_c_done" sourceRef="c_work" targetRef="c_done" />
+    <bpmn:sequenceFlow id="F_c_done_d_compl" sourceRef="c_done" targetRef="d_compl" />
+    <bpmn:sequenceFlow id="F_d_compl_a_review" sourceRef="d_compl" targetRef="a_review" />
+    <bpmn:sequenceFlow id="F_a_review_a_ok" sourceRef="a_review" targetRef="a_ok" />
+    <bpmn:sequenceFlow id="F_d_resolved_d_close" sourceRef="d_resolved" targetRef="d_close" />
+    <bpmn:sequenceFlow id="F_d_close_d_end" sourceRef="d_close" targetRef="d_end" />
+    <bpmn:sequenceFlow id="F_d_found_merge2" name="yes" sourceRef="d_found" targetRef="merge2" />
+    <bpmn:sequenceFlow id="F_d_found_d_book" name="no, retries left" sourceRef="d_found" targetRef="d_book" />
+    <bpmn:sequenceFlow id="F_d_found_merge1" name="no, retries exhausted" sourceRef="d_found" targetRef="merge1" />
+    <bpmn:sequenceFlow id="F_a_dec_a_manual" name="manual" sourceRef="a_dec" targetRef="a_manual" />
+    <bpmn:sequenceFlow id="F_a_dec_d_book" name="retry" sourceRef="a_dec" targetRef="d_book" />
+    <bpmn:sequenceFlow id="F_a_dec_a_cancel" name="cancel" sourceRef="a_dec" targetRef="a_cancel" />
+    <bpmn:sequenceFlow id="F_a_ok_a_rework" name="no" sourceRef="a_ok" targetRef="a_rework" />
+    <bpmn:sequenceFlow id="F_a_ok_d_resolved" name="yes" sourceRef="a_ok" targetRef="d_resolved" />
+    <bpmn:sequenceFlow id="F_a_rework_c_work" sourceRef="a_rework" targetRef="c_work" />
+    <bpmn:subProcess id="S_cancel" name="Cancellation (any active state before the completion report)" triggeredByEvent="true">
+      <bpmn:startEvent id="x_start" name="Cancel requested">
+        <bpmn:outgoing>F_x_start_x_ext</bpmn:outgoing>
+        <bpmn:signalEventDefinition id="ED_x_start" />
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="x_ext" name="Cancel or reconcile the external booking [cancellation_pending]">
+        <bpmn:incoming>F_x_start_x_ext</bpmn:incoming>
+        <bpmn:outgoing>F_x_ext_x_end</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="x_end" name="Intervention cancelled">
+        <bpmn:incoming>F_x_ext_x_end</bpmn:incoming>
+        <bpmn:messageEventDefinition id="ED_x_end" />
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="F_x_start_x_ext" sourceRef="x_start" targetRef="x_ext" />
+      <bpmn:sequenceFlow id="F_x_ext_x_end" sourceRef="x_ext" targetRef="x_end" />
+    </bpmn:subProcess>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_booking">
+    <bpmndi:BPMNPlane id="Plane_booking" bpmnElement="Collab_booking">
+      <bpmndi:BPMNShape id="P_bmc_di" bpmnElement="P_bmc" isHorizontal="true"><dc:Bounds x="0" y="100" width="2765" height="762" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_adm_di" bpmnElement="L_adm" isHorizontal="true"><dc:Bounds x="30" y="100" width="2735" height="254" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_con_di" bpmnElement="L_con" isHorizontal="true"><dc:Bounds x="30" y="354" width="2735" height="149" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_dis_di" bpmnElement="L_dis" isHorizontal="true"><dc:Bounds x="30" y="503" width="2735" height="359" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_issue_di" bpmnElement="P_issue" isHorizontal="true"><dc:Bounds x="0" y="0" width="2765" height="60" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_cal_di" bpmnElement="P_cal" isHorizontal="true"><dc:Bounds x="0" y="902" width="2765" height="60" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_cancel_di" bpmnElement="S_cancel" isExpanded="true"><dc:Bounds x="350" y="201" width="415" height="147" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_start_di" bpmnElement="d_start"><dc:Bounds x="102" y="664" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_book_di" bpmnElement="d_book"><dc:Bounds x="172" y="640" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_wait_di" bpmnElement="d_wait"><dc:Bounds x="365" y="658" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_confl_di" bpmnElement="d_confl"><dc:Bounds x="492" y="560" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_conf_di" bpmnElement="d_conf"><dc:Bounds x="492" y="664" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_to_di" bpmnElement="d_to"><dc:Bounds x="492" y="770" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_recon_di" bpmnElement="d_recon"><dc:Bounds x="598" y="746" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_found_di" bpmnElement="d_found"><dc:Bounds x="838" y="762" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="866" y="798" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="merge1_di" bpmnElement="merge1"><dc:Bounds x="838" y="552" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_handle_di" bpmnElement="a_handle"><dc:Bounds x="782" y="132" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_dec_di" bpmnElement="a_dec"><dc:Bounds x="995" y="150" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="1015" y="184" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_cancel_di" bpmnElement="a_cancel"><dc:Bounds x="1002" y="262" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_manual_di" bpmnElement="a_manual"><dc:Bounds x="1098" y="132" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="merge2_di" bpmnElement="merge2"><dc:Bounds x="1152" y="658" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_booked_di" bpmnElement="d_booked"><dc:Bounds x="1282" y="640" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="c_work_di" bpmnElement="c_work"><dc:Bounds x="1468" y="386" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="c_done_di" bpmnElement="c_done"><dc:Bounds x="1652" y="386" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_compl_di" bpmnElement="d_compl"><dc:Bounds x="1838" y="640" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_review_di" bpmnElement="a_review"><dc:Bounds x="2022" y="132" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_ok_di" bpmnElement="a_ok"><dc:Bounds x="2220" y="150" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="2200" y="130" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_rework_di" bpmnElement="a_rework"><dc:Bounds x="2165" y="238" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_resolved_di" bpmnElement="d_resolved"><dc:Bounds x="2308" y="640" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_close_di" bpmnElement="d_close"><dc:Bounds x="2492" y="640" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_end_di" bpmnElement="d_end"><dc:Bounds x="2687" y="664" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_start_di" bpmnElement="x_start"><dc:Bounds x="372" y="262" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_ext_di" bpmnElement="x_ext"><dc:Bounds x="455" y="238" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_end_di" bpmnElement="x_end"><dc:Bounds x="680" y="262" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F_d_start_d_book_di" bpmnElement="F_d_start_d_book"><di:waypoint x="138" y="682" /><di:waypoint x="172" y="682" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_book_d_wait_di" bpmnElement="F_d_book_d_wait"><di:waypoint x="332" y="682" /><di:waypoint x="365" y="682" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_wait_d_confl_di" bpmnElement="F_d_wait_d_confl"><di:waypoint x="390" y="658" /><di:waypoint x="390" y="578" /><di:waypoint x="492" y="578" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_wait_d_conf_di" bpmnElement="F_d_wait_d_conf"><di:waypoint x="415" y="682" /><di:waypoint x="492" y="682" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_wait_d_to_di" bpmnElement="F_d_wait_d_to"><di:waypoint x="390" y="708" /><di:waypoint x="390" y="788" /><di:waypoint x="492" y="788" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_conf_merge2_di" bpmnElement="F_d_conf_merge2"><di:waypoint x="528" y="682" /><di:waypoint x="1152" y="682" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_confl_merge1_di" bpmnElement="F_d_confl_merge1"><di:waypoint x="528" y="578" /><di:waypoint x="838" y="578" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_to_d_recon_di" bpmnElement="F_d_to_d_recon"><di:waypoint x="528" y="788" /><di:waypoint x="598" y="788" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_recon_d_found_di" bpmnElement="F_d_recon_d_found"><di:waypoint x="758" y="788" /><di:waypoint x="838" y="788" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_merge1_a_handle_di" bpmnElement="F_merge1_a_handle"><di:waypoint x="862" y="552" /><di:waypoint x="862" y="216" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_handle_a_dec_di" bpmnElement="F_a_handle_a_dec"><di:waypoint x="942" y="174" /><di:waypoint x="995" y="174" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_manual_merge2_di" bpmnElement="F_a_manual_merge2"><di:waypoint x="1178" y="216" /><di:waypoint x="1178" y="658" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_merge2_d_booked_di" bpmnElement="F_merge2_d_booked"><di:waypoint x="1202" y="682" /><di:waypoint x="1282" y="682" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_booked_c_work_di" bpmnElement="F_d_booked_c_work"><di:waypoint x="1442" y="682" /><di:waypoint x="1548" y="682" /><di:waypoint x="1548" y="470" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c_work_c_done_di" bpmnElement="F_c_work_c_done"><di:waypoint x="1628" y="428" /><di:waypoint x="1652" y="428" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c_done_d_compl_di" bpmnElement="F_c_done_d_compl"><di:waypoint x="1812" y="428" /><di:waypoint x="1918" y="428" /><di:waypoint x="1918" y="640" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_compl_a_review_di" bpmnElement="F_d_compl_a_review"><di:waypoint x="1998" y="682" /><di:waypoint x="2102" y="682" /><di:waypoint x="2102" y="216" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_review_a_ok_di" bpmnElement="F_a_review_a_ok"><di:waypoint x="2182" y="174" /><di:waypoint x="2220" y="174" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_resolved_d_close_di" bpmnElement="F_d_resolved_d_close"><di:waypoint x="2468" y="682" /><di:waypoint x="2492" y="682" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_close_d_end_di" bpmnElement="F_d_close_d_end"><di:waypoint x="2652" y="682" /><di:waypoint x="2687" y="682" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_x_start_x_ext_di" bpmnElement="F_x_start_x_ext"><di:waypoint x="408" y="280" /><di:waypoint x="455" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_x_ext_x_end_di" bpmnElement="F_x_ext_x_end"><di:waypoint x="615" y="280" /><di:waypoint x="680" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_found_merge2_di" bpmnElement="F_d_found_merge2"><di:waypoint x="888" y="788" /><di:waypoint x="1178" y="788" /><di:waypoint x="1178" y="708" /><bpmndi:BPMNLabel><dc:Bounds x="975" y="768" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_found_d_book_di" bpmnElement="F_d_found_d_book"><di:waypoint x="862" y="812" /><di:waypoint x="862" y="852" /><di:waypoint x="252" y="852" /><di:waypoint x="252" y="724" /><bpmndi:BPMNLabel><dc:Bounds x="345" y="834" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_found_merge1_di" bpmnElement="F_d_found_merge1"><di:waypoint x="862" y="762" /><di:waypoint x="862" y="602" /><bpmndi:BPMNLabel><dc:Bounds x="866" y="690" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_dec_a_manual_di" bpmnElement="F_a_dec_a_manual"><di:waypoint x="1045" y="174" /><di:waypoint x="1098" y="174" /><bpmndi:BPMNLabel><dc:Bounds x="1027" y="152" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_dec_d_book_di" bpmnElement="F_a_dec_d_book"><di:waypoint x="1020" y="150" /><di:waypoint x="1020" y="110" /><di:waypoint x="252" y="110" /><di:waypoint x="252" y="640" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_dec_a_cancel_di" bpmnElement="F_a_dec_a_cancel"><di:waypoint x="1020" y="200" /><di:waypoint x="1020" y="262" /><bpmndi:BPMNLabel><dc:Bounds x="945" y="220" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_ok_a_rework_di" bpmnElement="F_a_ok_a_rework"><di:waypoint x="2245" y="200" /><di:waypoint x="2245" y="238" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_ok_d_resolved_di" bpmnElement="F_a_ok_d_resolved"><di:waypoint x="2270" y="174" /><di:waypoint x="2388" y="174" /><di:waypoint x="2388" y="640" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_rework_c_work_di" bpmnElement="F_a_rework_c_work"><di:waypoint x="2165" y="280" /><di:waypoint x="1548" y="280" /><di:waypoint x="1548" y="386" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_d_book_P_cal_di" bpmnElement="M_d_book_P_cal"><di:waypoint x="212" y="724" /><di:waypoint x="212" y="902" /><bpmndi:BPMNLabel><dc:Bounds x="218" y="872" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_d_recon_P_cal_di" bpmnElement="M_d_recon_P_cal"><di:waypoint x="656" y="830" /><di:waypoint x="656" y="902" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_P_cal_d_recon_di" bpmnElement="M_P_cal_d_recon"><di:waypoint x="700" y="902" /><di:waypoint x="700" y="830" /><bpmndi:BPMNLabel><dc:Bounds x="704" y="872" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_d_booked_P_issue_di" bpmnElement="M_d_booked_P_issue"><di:waypoint x="1362" y="640" /><di:waypoint x="1362" y="60" /><bpmndi:BPMNLabel><dc:Bounds x="1368" y="66" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_d_compl_P_issue_di" bpmnElement="M_d_compl_P_issue"><di:waypoint x="1958" y="640" /><di:waypoint x="1958" y="60" /><bpmndi:BPMNLabel><dc:Bounds x="1962" y="66" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_P_issue_d_resolved_di" bpmnElement="M_P_issue_d_resolved"><di:waypoint x="2428" y="60" /><di:waypoint x="2428" y="640" /><bpmndi:BPMNLabel><dc:Bounds x="2432" y="66" width="90" height="42" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

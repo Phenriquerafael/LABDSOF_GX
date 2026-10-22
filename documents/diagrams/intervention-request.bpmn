@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_request" targetNamespace="https://github.com/Phenriquerafael/LABDSOF_GX/bpmn" exporter="LABDSOF_GX EN-01-02 generator" exporterVersion="1">
+  <bpmn:collaboration id="Collab_request">
+    <bpmn:participant id="P_bmc" name="BMC — intervention request and response (owner: Dispatch Service)" processRef="Process_request" />
+    <bpmn:participant id="P_issue" name="Issue Service" />
+    <bpmn:messageFlow id="M_d_check_P_issue" sourceRef="d_check" targetRef="P_issue" />
+    <bpmn:messageFlow id="M_P_issue_d_check" name="context request / answer" sourceRef="P_issue" targetRef="d_check" />
+    <bpmn:messageFlow id="M_d_send_P_issue" name="approved" sourceRef="d_send" targetRef="P_issue" />
+    <bpmn:messageFlow id="M_d_accept_P_issue" name="response" sourceRef="d_accept" targetRef="P_issue" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_request" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="L_adm" name="Administrator">
+        <bpmn:flowNodeRef>a_start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_select</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_approve</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_con" name="Contractor">
+        <bpmn:flowNodeRef>c_review</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>c_resp</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>c_counter</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_dis" name="Dispatch Service">
+        <bpmn:flowNodeRef>d_check</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_reject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_create</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_author</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_agreed1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_send</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_accept</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_decline</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_end_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>d_end_decl</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="a_start" name="Issue triaged">
+      <bpmn:outgoing>F_a_start_a_select</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="a_select" name="Select an eligible contractor and draft the proposal">
+      <bpmn:incoming>F_a_start_a_select</bpmn:incoming>
+      <bpmn:outgoing>F_a_select_d_check</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="d_check" name="Check Issue context (fail closed)">
+      <bpmn:incoming>F_a_select_d_check</bpmn:incoming>
+      <bpmn:outgoing>F_d_check_d_ok</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="d_ok" name="Authorised and dispatchable?">
+      <bpmn:incoming>F_d_check_d_ok</bpmn:incoming>
+      <bpmn:outgoing>F_d_ok_d_create</bpmn:outgoing>
+      <bpmn:outgoing>F_d_ok_d_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="d_reject" name="Rejected (403 / 404 / 503)">
+      <bpmn:incoming>F_d_ok_d_reject</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ED_d_reject" />
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="d_create" name="Create intervention and proposal v1 [awaiting_approval]">
+      <bpmn:incoming>F_d_ok_d_create</bpmn:incoming>
+      <bpmn:outgoing>F_d_create_a_approve</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="a_approve" name="Approve the current proposal version">
+      <bpmn:incoming>F_d_create_a_approve</bpmn:incoming>
+      <bpmn:incoming>F_c_counter_a_approve</bpmn:incoming>
+      <bpmn:outgoing>F_a_approve_d_author</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="d_author" name="Version authored by?">
+      <bpmn:incoming>F_a_approve_d_author</bpmn:incoming>
+      <bpmn:outgoing>F_d_author_d_send</bpmn:outgoing>
+      <bpmn:outgoing>F_d_author_d_agreed1</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="d_agreed1" name="Version agreed (Figure 4)">
+      <bpmn:incoming>F_d_author_d_agreed1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="d_send" name="Record approval and send the request [sent]">
+      <bpmn:incoming>F_d_author_d_send</bpmn:incoming>
+      <bpmn:outgoing>F_d_send_c_review</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="c_review" name="Review the request extract and terms">
+      <bpmn:incoming>F_d_send_c_review</bpmn:incoming>
+      <bpmn:outgoing>F_c_review_c_resp</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="c_resp" name="Response?">
+      <bpmn:incoming>F_c_review_c_resp</bpmn:incoming>
+      <bpmn:outgoing>F_c_resp_d_accept</bpmn:outgoing>
+      <bpmn:outgoing>F_c_resp_c_counter</bpmn:outgoing>
+      <bpmn:outgoing>F_c_resp_d_decline</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="c_counter" name="Counterpropose (new version) [awaiting_approval]">
+      <bpmn:incoming>F_c_resp_c_counter</bpmn:incoming>
+      <bpmn:outgoing>F_c_counter_a_approve</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="d_accept" name="Record acceptance [scheduling_pending]">
+      <bpmn:incoming>F_c_resp_d_accept</bpmn:incoming>
+      <bpmn:outgoing>F_d_accept_d_end_ok</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="d_decline" name="Record decline [declined]">
+      <bpmn:incoming>F_c_resp_d_decline</bpmn:incoming>
+      <bpmn:outgoing>F_d_decline_d_end_decl</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="d_end_ok" name="Version agreed (Figure 4)">
+      <bpmn:incoming>F_d_accept_d_end_ok</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="d_end_decl" name="Declined">
+      <bpmn:incoming>F_d_decline_d_end_decl</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="F_a_start_a_select" sourceRef="a_start" targetRef="a_select" />
+    <bpmn:sequenceFlow id="F_d_check_d_ok" sourceRef="d_check" targetRef="d_ok" />
+    <bpmn:sequenceFlow id="F_a_approve_d_author" sourceRef="a_approve" targetRef="d_author" />
+    <bpmn:sequenceFlow id="F_d_send_c_review" sourceRef="d_send" targetRef="c_review" />
+    <bpmn:sequenceFlow id="F_c_review_c_resp" sourceRef="c_review" targetRef="c_resp" />
+    <bpmn:sequenceFlow id="F_d_accept_d_end_ok" sourceRef="d_accept" targetRef="d_end_ok" />
+    <bpmn:sequenceFlow id="F_d_decline_d_end_decl" sourceRef="d_decline" targetRef="d_end_decl" />
+    <bpmn:sequenceFlow id="F_a_select_d_check" sourceRef="a_select" targetRef="d_check" />
+    <bpmn:sequenceFlow id="F_d_ok_d_create" name="yes" sourceRef="d_ok" targetRef="d_create" />
+    <bpmn:sequenceFlow id="F_d_ok_d_reject" name="no" sourceRef="d_ok" targetRef="d_reject" />
+    <bpmn:sequenceFlow id="F_d_create_a_approve" sourceRef="d_create" targetRef="a_approve" />
+    <bpmn:sequenceFlow id="F_d_author_d_send" name="administrator" sourceRef="d_author" targetRef="d_send" />
+    <bpmn:sequenceFlow id="F_d_author_d_agreed1" name="contractor" sourceRef="d_author" targetRef="d_agreed1" />
+    <bpmn:sequenceFlow id="F_c_resp_d_accept" name="accept" sourceRef="c_resp" targetRef="d_accept" />
+    <bpmn:sequenceFlow id="F_c_resp_c_counter" name="counterpropose" sourceRef="c_resp" targetRef="c_counter" />
+    <bpmn:sequenceFlow id="F_c_resp_d_decline" name="decline" sourceRef="c_resp" targetRef="d_decline" />
+    <bpmn:sequenceFlow id="F_c_counter_a_approve" sourceRef="c_counter" targetRef="a_approve" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_request">
+    <bpmndi:BPMNPlane id="Plane_request" bpmnElement="Collab_request">
+      <bpmndi:BPMNShape id="P_bmc_di" bpmnElement="P_bmc" isHorizontal="true"><dc:Bounds x="0" y="100" width="1915" height="657" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_adm_di" bpmnElement="L_adm" isHorizontal="true"><dc:Bounds x="30" y="100" width="1885" height="149" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_con_di" bpmnElement="L_con" isHorizontal="true"><dc:Bounds x="30" y="249" width="1885" height="254" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_dis_di" bpmnElement="L_dis" isHorizontal="true"><dc:Bounds x="30" y="503" width="1885" height="254" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_issue_di" bpmnElement="P_issue" isHorizontal="true"><dc:Bounds x="0" y="0" width="1915" height="60" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_start_di" bpmnElement="a_start"><dc:Bounds x="102" y="156" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_select_di" bpmnElement="a_select"><dc:Bounds x="172" y="132" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_check_di" bpmnElement="d_check"><dc:Bounds x="358" y="536" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_ok_di" bpmnElement="d_ok"><dc:Bounds x="555" y="552" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="535" y="516" width="90" height="42" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_reject_di" bpmnElement="d_reject"><dc:Bounds x="704" y="664" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_create_di" bpmnElement="d_create"><dc:Bounds x="642" y="536" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_approve_di" bpmnElement="a_approve"><dc:Bounds x="828" y="132" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_author_di" bpmnElement="d_author"><dc:Bounds x="1055" y="552" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="963" y="544" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_agreed1_di" bpmnElement="d_agreed1"><dc:Bounds x="1234" y="664" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_send_di" bpmnElement="d_send"><dc:Bounds x="1172" y="536" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="c_review_di" bpmnElement="c_review"><dc:Bounds x="1358" y="386" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="c_resp_di" bpmnElement="c_resp"><dc:Bounds x="1555" y="404" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="1575" y="440" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="c_counter_di" bpmnElement="c_counter"><dc:Bounds x="1500" y="282" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_accept_di" bpmnElement="d_accept"><dc:Bounds x="1642" y="536" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_decline_di" bpmnElement="d_decline"><dc:Bounds x="1642" y="640" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_end_ok_di" bpmnElement="d_end_ok"><dc:Bounds x="1837" y="560" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="d_end_decl_di" bpmnElement="d_end_decl"><dc:Bounds x="1837" y="664" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F_a_start_a_select_di" bpmnElement="F_a_start_a_select"><di:waypoint x="138" y="174" /><di:waypoint x="172" y="174" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_check_d_ok_di" bpmnElement="F_d_check_d_ok"><di:waypoint x="518" y="578" /><di:waypoint x="555" y="578" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_approve_d_author_di" bpmnElement="F_a_approve_d_author"><di:waypoint x="988" y="174" /><di:waypoint x="1080" y="174" /><di:waypoint x="1080" y="552" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_send_c_review_di" bpmnElement="F_d_send_c_review"><di:waypoint x="1332" y="578" /><di:waypoint x="1438" y="578" /><di:waypoint x="1438" y="470" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c_review_c_resp_di" bpmnElement="F_c_review_c_resp"><di:waypoint x="1518" y="428" /><di:waypoint x="1555" y="428" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_accept_d_end_ok_di" bpmnElement="F_d_accept_d_end_ok"><di:waypoint x="1802" y="578" /><di:waypoint x="1837" y="578" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_decline_d_end_decl_di" bpmnElement="F_d_decline_d_end_decl"><di:waypoint x="1802" y="682" /><di:waypoint x="1837" y="682" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_select_d_check_di" bpmnElement="F_a_select_d_check"><di:waypoint x="252" y="216" /><di:waypoint x="252" y="578" /><di:waypoint x="358" y="578" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_ok_d_create_di" bpmnElement="F_d_ok_d_create"><di:waypoint x="605" y="578" /><di:waypoint x="642" y="578" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_ok_d_reject_di" bpmnElement="F_d_ok_d_reject"><di:waypoint x="580" y="602" /><di:waypoint x="580" y="682" /><di:waypoint x="704" y="682" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_create_a_approve_di" bpmnElement="F_d_create_a_approve"><di:waypoint x="722" y="536" /><di:waypoint x="722" y="174" /><di:waypoint x="828" y="174" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_author_d_send_di" bpmnElement="F_d_author_d_send"><di:waypoint x="1105" y="578" /><di:waypoint x="1172" y="578" /><bpmndi:BPMNLabel><dc:Bounds x="1085" y="550" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_d_author_d_agreed1_di" bpmnElement="F_d_author_d_agreed1"><di:waypoint x="1080" y="602" /><di:waypoint x="1080" y="682" /><di:waypoint x="1234" y="682" /><bpmndi:BPMNLabel><dc:Bounds x="1075" y="662" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c_resp_d_accept_di" bpmnElement="F_c_resp_d_accept"><di:waypoint x="1605" y="428" /><di:waypoint x="1722" y="428" /><di:waypoint x="1722" y="536" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c_resp_c_counter_di" bpmnElement="F_c_resp_c_counter"><di:waypoint x="1580" y="404" /><di:waypoint x="1580" y="366" /><bpmndi:BPMNLabel><dc:Bounds x="1487" y="376" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c_resp_d_decline_di" bpmnElement="F_c_resp_d_decline"><di:waypoint x="1580" y="454" /><di:waypoint x="1580" y="682" /><di:waypoint x="1642" y="682" /><bpmndi:BPMNLabel><dc:Bounds x="1505" y="642" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c_counter_a_approve_di" bpmnElement="F_c_counter_a_approve"><di:waypoint x="1580" y="282" /><di:waypoint x="1580" y="110" /><di:waypoint x="908" y="110" /><di:waypoint x="908" y="132" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_d_check_P_issue_di" bpmnElement="M_d_check_P_issue"><di:waypoint x="416" y="536" /><di:waypoint x="416" y="60" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_P_issue_d_check_di" bpmnElement="M_P_issue_d_check"><di:waypoint x="460" y="60" /><di:waypoint x="460" y="536" /><bpmndi:BPMNLabel><dc:Bounds x="464" y="66" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_d_send_P_issue_di" bpmnElement="M_d_send_P_issue"><di:waypoint x="1252" y="536" /><di:waypoint x="1252" y="60" /><bpmndi:BPMNLabel><dc:Bounds x="1258" y="66" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_d_accept_P_issue_di" bpmnElement="M_d_accept_P_issue"><di:waypoint x="1762" y="536" /><di:waypoint x="1762" y="60" /><bpmndi:BPMNLabel><dc:Bounds x="1768" y="66" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

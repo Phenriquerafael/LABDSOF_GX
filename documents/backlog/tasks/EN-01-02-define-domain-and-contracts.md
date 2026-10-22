@@ -1,6 +1,6 @@
 # [EN-01-02] Consolidate the domain model and contract outlines
 
-- Publication: Draft — not published; GitHub issue URL: pending.
+- Publication: Published as [#20](https://github.com/Phenriquerafael/LABDSOF_GX/issues/20) (checked 2026-10-19); GitHub owns live status.
 - Workflow: Backlog; proposed milestone: S1 — Discover, Validate and Design; dates/estimate: to be agreed.
 - Type: task; suggested labels: `type:task`, `area:backend`, `phase:3`, `priority:must`.
 - Parent: [EN-01](EN-01-technical-design.md); epic: [EP-04](../epics/EP-04-engineering-and-quality.md).
@@ -39,8 +39,8 @@ Use the documentation/research checks appropriate to this task; implementation t
 
 ## Completion record
 
-- Result/findings and limitations: to be recorded after execution or verification of existing work.
-- Evidence/PR/review links: to be recorded; document presence alone is not completion evidence.
-- Decision/requirement changes: to be recorded, or explain why no change was needed.
+- Result/findings and limitations: domain model reviewed against J1–J3 on 2026-10-19 by Afonso, with one writing service per entity and six gaps closed (areas, contractor account link, proposal versions, triage decision, completion report versus cost, history projection). Issue and intervention state machines, invalid and concurrent transition rules, API and internal operations, event catalogue, Dispatch authorisation context, calendar/simulator contract and starting retry values drafted in [07 §2–§4](../../07-technical-design.md#2-domain-model-and-data-ownership); examples and a 16-scenario review walkthrough in the [contract annex](../../07a-contract-examples.md). Limitations: builds on EN-01-01 proposals in the unmerged PR #30; rules are not validated with administrators or contractors (DEC-10); retry values are unmeasured; no executable OpenAPI (excluded).
+- Evidence/PR/review links: the pull request referencing #20; review by the assigned reviewer pending, including the walkthrough. Document presence alone is not completion evidence.
+- Decision/requirement changes: DEC-10 status and the EN-01-02 entry in the [register](../../planning/decisions-and-feedback.md#domain-and-contract-proposals--en-01-02); NFR-01/04/11 criteria and the DEC-10 open decision in [requirements](../../requirements.md); access matrix and T-11 in [security](../../09-security-privacy.md).
 - [ ] DoR reviewed with date, estimate, owner and reviewer confirmed.
 - [ ] Acceptance criteria and applicable [DoD](../../governance/definition-of-done.md) verified with evidence.

@@ -17,7 +17,7 @@ A provisional baseline enables consistent documents; it does not mean approval. 
 | DEC-07 | Visibility and data lifecycle | Private reports, published shared summary, extract for contractor, synthetic data | QA/Security, BA/PO | Before implementing permissions | To be validated |
 | DEC-08 | Baselines and targets | Primary: active administrative time, ≥ 30% reduction in the median of participant medians versus the current process, with completion and critical-case guards ([vision §5.1](../04-product-vision.md#51-primary-success-criterion-dec-08)); provisional technical targets | QA, BA/PO, AI | Before formal evaluation | Product threshold proposed by BA/PO on 2026-10-19, team agreement pending; technical targets to be calibrated |
 | DEC-09 | Methodology, board and Git | Adapted Scrum, GitHub Projects or Jira, short-lived branches and reviewed PRs | Team | Phase 1 | To be ratified/configured |
-| DEC-10 | Approval and confirmation | Administrator approves request; contractor accepts; calendar/manual booking confirmation; contractor reports completion; administrator closes ([vision §4.3](../04-product-vision.md#43-distinct-steps-dec-10)) | BA/PO, administrators and contractors | Before US-07–US-09 | Step definitions proposed on 2026-10-19; validation with administrators and contractors pending |
+| DEC-10 | Approval and confirmation | Administrator approves request; contractor accepts; calendar/manual booking confirmation; contractor reports completion; administrator closes ([vision §4.3](../04-product-vision.md#43-distinct-steps-dec-10)) | BA/PO, administrators and contractors | Before US-07–US-09 | Step definitions proposed on 2026-10-19; transition, cancellation and concurrency rules proposed in EN-01-02 on 2026-10-19; validation with administrators and contractors pending |
 
 ### Confirmed Sprint 1 scope decision — DEC-11
 
@@ -37,6 +37,17 @@ A provisional baseline enables consistent documents; it does not mean approval. 
 - **DEC-10:** triage decision, approval, acceptance, booking confirmation, completion report, closure and impact confirmation defined as distinct steps, consistent with [07 §3](../07-technical-design.md#3-states-and-business-rules).
 - **DEC-07 input:** the impact-confirmation review adds neutral count wording, no confirmation list for administrators and an open option on exact counts in very small buildings; the policy itself stays with DEC-07.
 - **Affected documents:** [vision](../04-product-vision.md), [strategy](../building-maintenance-coordinator-strategy.md), [requirements](../requirements.md), [backlog §5](../05-product-backlog.md#5-wont-in-this-baseline--alternatives), [README](../../README.md). The IoT row of the former roadmap is carried by backlog §5 since the roadmap was removed in #16. US-04 criteria are unchanged; the counter wording is a refinement for the US-04 owner to consider.
+
+### Domain and contract proposals — EN-01-02
+
+- **Recorded:** 2026-10-19 by Afonso (BA/PO) for [#20](https://github.com/Phenriquerafael/LABDSOF_GX/issues/20). Proposed reviewer: Ricardo. These are design proposals, not accepted decisions and not stakeholder validation.
+- **Inputs:** vision J1–J3 and §4.3; backlog US-01–US-11; the boundaries, asynchronous mechanism, identity and simulator proposed in EN-01-01 ([PR #30](https://github.com/Phenriquerafael/LABDSOF_GX/pull/30), unmerged at the time of writing). If those ADRs change, the affected sections of the design must be reviewed again.
+- **DEC-10:** issue and intervention state machines with allow-listed transitions, optimistic versions and idempotency keys ([07 §3](../07-technical-design.md#3-states-and-business-rules)). Proposed rules to validate: approving a contractor's counterproposal counts as that contractor's acceptance; a cancelled issue is not reopened (a new report is made instead); rescheduling after a booking confirmation is done by cancelling or by manual booking confirmation; contractors cannot cancel after acceptance through the platform.
+- **DEC-04 input:** Dispatch takes only the user identity from the token, checks contractor assignment from its own data and fetches administrator context from Issue for each command, failing closed ([07 §4.3](../07-technical-design.md#43-how-dispatch-obtains-trustworthy-authorisation-context)). Alternatives (token claims, read-only database access, membership projection) and their trade-offs are recorded there; projection versus per-request calls stays open for EN-01-03.
+- **DEC-06 input:** calendar/simulator contract outline with outcome classification, reconciliation by request ID and a `discrepancy` state ([07 §4.5](../07-technical-design.md#45-calendarsimulator-contract-outline)).
+- **DEC-07 input:** an “Enforced in” column and new rows in the [access matrix](../09-security-privacy.md#2-proposed-access-matrix); threat T-11. Whether contractor accounts are scoped to an organisation stays open.
+- **EN01-U7 (from #30):** starting retry, lease and retention values proposed in [07 §4.6](../07-technical-design.md#46-retry-timeout-and-lease-values-proposal), to calibrate in the EN01-U2 spike.
+- **Affected documents:** [technical design](../07-technical-design.md), [contract annex](../07a-contract-examples.md), [requirements](../requirements.md), [security](../09-security-privacy.md), [README](../../README.md).
 
 ## 2. Editorial harmonisation
 

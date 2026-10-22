@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_issue" targetNamespace="https://github.com/Phenriquerafael/LABDSOF_GX/bpmn" exporter="LABDSOF_GX EN-01-02 generator" exporterVersion="1">
+  <bpmn:collaboration id="Collab_issue">
+    <bpmn:participant id="P_bmc" name="BMC — issue lifecycle (owner: Issue Service)" processRef="Process_issue" />
+    <bpmn:participant id="P_worker" name="Triage worker" />
+    <bpmn:participant id="P_disp" name="Dispatch Service (Figures 3 and 4)" />
+    <bpmn:messageFlow id="M_i_suggest_P_worker" sourceRef="i_suggest" targetRef="P_worker" />
+    <bpmn:messageFlow id="M_P_worker_i_suggest" name="claim job / result" sourceRef="P_worker" targetRef="i_suggest" />
+    <bpmn:messageFlow id="M_a_coord_P_disp" name="commands" sourceRef="a_coord" targetRef="P_disp" />
+    <bpmn:messageFlow id="M_P_disp_i_approved" sourceRef="P_disp" targetRef="i_approved" />
+    <bpmn:messageFlow id="M_P_disp_i_declined" sourceRef="P_disp" targetRef="i_declined" />
+    <bpmn:messageFlow id="M_disp_done" sourceRef="P_disp" targetRef="i_done" />
+    <bpmn:messageFlow id="M_disp_prog" name="Dispatch events" sourceRef="P_disp" targetRef="i_progress" />
+    <bpmn:messageFlow id="M_a_rework_P_disp" name="rework" sourceRef="a_rework" targetRef="P_disp" />
+    <bpmn:messageFlow id="M_i_emit_P_disp" name="issue resolved" sourceRef="i_emit" targetRef="P_disp" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_issue" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="L_res" name="Resident">
+        <bpmn:flowNodeRef>r_start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>r_submit</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_adm" name="Administrator">
+        <bpmn:flowNodeRef>a_reopen</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_triage</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_coord</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_relink</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_validate</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_close</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_rework</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a_tolink</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>S_manual</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_iss" name="Issue Service">
+        <bpmn:flowNodeRef>i_persist</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_suggest</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_approved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_merge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_evgw</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_progress</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_done</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_declined</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_tocoord</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_relink</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_emit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i_end</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="r_start" name="Fault noticed">
+      <bpmn:outgoing>F_r_start_r_submit</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="r_submit" name="Submit report (building, area, text)">
+      <bpmn:incoming>F_r_start_r_submit</bpmn:incoming>
+      <bpmn:outgoing>F_r_submit_i_persist</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="i_persist" name="Persist report, issue and triage job [received]">
+      <bpmn:incoming>F_r_submit_i_persist</bpmn:incoming>
+      <bpmn:outgoing>F_i_persist_i_suggest</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="i_suggest" name="Record AI suggestion or rules fallback [in_triage]">
+      <bpmn:incoming>F_i_persist_i_suggest</bpmn:incoming>
+      <bpmn:outgoing>F_i_suggest_a_triage</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:startEvent id="a_reopen" name="Resolved issue reopened with a reason">
+      <bpmn:outgoing>F_a_reopen_a_triage</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ED_a_reopen" />
+    </bpmn:startEvent>
+    <bpmn:userTask id="a_triage" name="Confirm or correct the triage [triaged]">
+      <bpmn:incoming>F_i_suggest_a_triage</bpmn:incoming>
+      <bpmn:incoming>F_a_reopen_a_triage</bpmn:incoming>
+      <bpmn:outgoing>F_a_triage_a_coord</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="a_coord" name="Select contractor and approve (Figure 3)">
+      <bpmn:incoming>F_a_triage_a_coord</bpmn:incoming>
+      <bpmn:incoming>F_a_relink_a_coord</bpmn:incoming>
+      <bpmn:outgoing>F_a_coord_i_approved</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:intermediateCatchEvent id="a_relink" name="Coordinate again">
+      <bpmn:outgoing>F_a_relink_a_coord</bpmn:outgoing>
+      <bpmn:linkEventDefinition id="ED_a_relink" name="Coordinate again" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:receiveTask id="i_approved" name="Intervention approved [in_coordination]">
+      <bpmn:incoming>F_a_coord_i_approved</bpmn:incoming>
+      <bpmn:outgoing>F_i_approved_i_merge</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:exclusiveGateway id="i_merge" name="">
+      <bpmn:incoming>F_i_approved_i_merge</bpmn:incoming>
+      <bpmn:incoming>F_i_relink_i_merge</bpmn:incoming>
+      <bpmn:incoming>F_i_progress_i_merge</bpmn:incoming>
+      <bpmn:outgoing>F_i_merge_i_evgw</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:eventBasedGateway id="i_evgw" name="">
+      <bpmn:incoming>F_i_merge_i_evgw</bpmn:incoming>
+      <bpmn:outgoing>F_i_evgw_i_progress</bpmn:outgoing>
+      <bpmn:outgoing>F_i_evgw_i_done</bpmn:outgoing>
+      <bpmn:outgoing>F_i_evgw_i_declined</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:receiveTask id="i_progress" name="Booked or started [scheduled / in_progress]">
+      <bpmn:incoming>F_i_evgw_i_progress</bpmn:incoming>
+      <bpmn:outgoing>F_i_progress_i_merge</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:receiveTask id="i_done" name="Completion reported [awaiting_validation]">
+      <bpmn:incoming>F_i_evgw_i_done</bpmn:incoming>
+      <bpmn:outgoing>F_i_done_a_validate</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:receiveTask id="i_declined" name="Intervention declined or cancelled [triaged]">
+      <bpmn:incoming>F_i_evgw_i_declined</bpmn:incoming>
+      <bpmn:outgoing>F_i_declined_i_tocoord</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:intermediateThrowEvent id="i_tocoord" name="Coordinate again">
+      <bpmn:incoming>F_i_declined_i_tocoord</bpmn:incoming>
+      <bpmn:linkEventDefinition id="ED_i_tocoord" name="Coordinate again" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateCatchEvent id="i_relink" name="Rework requested">
+      <bpmn:outgoing>F_i_relink_i_merge</bpmn:outgoing>
+      <bpmn:linkEventDefinition id="ED_i_relink" name="Rework requested" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:userTask id="a_validate" name="Validate the completion report">
+      <bpmn:incoming>F_i_done_a_validate</bpmn:incoming>
+      <bpmn:outgoing>F_a_validate_a_ok</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="a_ok" name="Work acceptable?">
+      <bpmn:incoming>F_a_validate_a_ok</bpmn:incoming>
+      <bpmn:outgoing>F_a_ok_a_close</bpmn:outgoing>
+      <bpmn:outgoing>F_a_ok_a_rework</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="a_close" name="Close the issue (validated) [resolved]">
+      <bpmn:incoming>F_a_ok_a_close</bpmn:incoming>
+      <bpmn:outgoing>F_a_close_i_emit</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="a_rework" name="Request rework with a reason">
+      <bpmn:incoming>F_a_ok_a_rework</bpmn:incoming>
+      <bpmn:outgoing>F_a_rework_a_tolink</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:intermediateThrowEvent id="a_tolink" name="Rework requested">
+      <bpmn:incoming>F_a_rework_a_tolink</bpmn:incoming>
+      <bpmn:linkEventDefinition id="ED_a_tolink" name="Rework requested" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sendTask id="i_emit" name="Send issue resolved to Dispatch">
+      <bpmn:incoming>F_a_close_i_emit</bpmn:incoming>
+      <bpmn:outgoing>F_i_emit_i_end</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="i_end" name="Issue resolved">
+      <bpmn:incoming>F_i_emit_i_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="F_r_start_r_submit" sourceRef="r_start" targetRef="r_submit" />
+    <bpmn:sequenceFlow id="F_r_submit_i_persist" sourceRef="r_submit" targetRef="i_persist" />
+    <bpmn:sequenceFlow id="F_i_persist_i_suggest" sourceRef="i_persist" targetRef="i_suggest" />
+    <bpmn:sequenceFlow id="F_i_suggest_a_triage" sourceRef="i_suggest" targetRef="a_triage" />
+    <bpmn:sequenceFlow id="F_a_reopen_a_triage" sourceRef="a_reopen" targetRef="a_triage" />
+    <bpmn:sequenceFlow id="F_a_triage_a_coord" sourceRef="a_triage" targetRef="a_coord" />
+    <bpmn:sequenceFlow id="F_a_relink_a_coord" sourceRef="a_relink" targetRef="a_coord" />
+    <bpmn:sequenceFlow id="F_a_coord_i_approved" sourceRef="a_coord" targetRef="i_approved" />
+    <bpmn:sequenceFlow id="F_i_approved_i_merge" sourceRef="i_approved" targetRef="i_merge" />
+    <bpmn:sequenceFlow id="F_i_merge_i_evgw" sourceRef="i_merge" targetRef="i_evgw" />
+    <bpmn:sequenceFlow id="F_i_evgw_i_progress" sourceRef="i_evgw" targetRef="i_progress" />
+    <bpmn:sequenceFlow id="F_i_evgw_i_done" sourceRef="i_evgw" targetRef="i_done" />
+    <bpmn:sequenceFlow id="F_i_evgw_i_declined" sourceRef="i_evgw" targetRef="i_declined" />
+    <bpmn:sequenceFlow id="F_i_relink_i_merge" sourceRef="i_relink" targetRef="i_merge" />
+    <bpmn:sequenceFlow id="F_i_declined_i_tocoord" sourceRef="i_declined" targetRef="i_tocoord" />
+    <bpmn:sequenceFlow id="F_i_done_a_validate" sourceRef="i_done" targetRef="a_validate" />
+    <bpmn:sequenceFlow id="F_a_validate_a_ok" sourceRef="a_validate" targetRef="a_ok" />
+    <bpmn:sequenceFlow id="F_a_rework_a_tolink" sourceRef="a_rework" targetRef="a_tolink" />
+    <bpmn:sequenceFlow id="F_a_close_i_emit" sourceRef="a_close" targetRef="i_emit" />
+    <bpmn:sequenceFlow id="F_i_emit_i_end" sourceRef="i_emit" targetRef="i_end" />
+    <bpmn:sequenceFlow id="F_i_progress_i_merge" sourceRef="i_progress" targetRef="i_merge" />
+    <bpmn:sequenceFlow id="F_a_ok_a_close" name="yes" sourceRef="a_ok" targetRef="a_close" />
+    <bpmn:sequenceFlow id="F_a_ok_a_rework" name="no" sourceRef="a_ok" targetRef="a_rework" />
+    <bpmn:subProcess id="S_manual" name="Manual closure or cancellation (any open state)" triggeredByEvent="true">
+      <bpmn:startEvent id="e_start" name="Close or cancel">
+        <bpmn:outgoing>F_e_start_e_rec</bpmn:outgoing>
+        <bpmn:messageEventDefinition id="ED_e_start" />
+      </bpmn:startEvent>
+      <bpmn:userTask id="e_rec" name="Record reason [resolved or cancelled]">
+        <bpmn:incoming>F_e_start_e_rec</bpmn:incoming>
+        <bpmn:outgoing>F_e_rec_e_end</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:endEvent id="e_end" name="Event sent to Dispatch">
+        <bpmn:incoming>F_e_rec_e_end</bpmn:incoming>
+        <bpmn:messageEventDefinition id="ED_e_end" />
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="F_e_start_e_rec" sourceRef="e_start" targetRef="e_rec" />
+      <bpmn:sequenceFlow id="F_e_rec_e_end" sourceRef="e_rec" targetRef="e_end" />
+    </bpmn:subProcess>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_issue">
+    <bpmndi:BPMNPlane id="Plane_issue" bpmnElement="Collab_issue">
+      <bpmndi:BPMNShape id="P_bmc_di" bpmnElement="P_bmc" isHorizontal="true"><dc:Bounds x="0" y="0" width="2470" height="762" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_res_di" bpmnElement="L_res" isHorizontal="true"><dc:Bounds x="30" y="0" width="2440" height="149" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_adm_di" bpmnElement="L_adm" isHorizontal="true"><dc:Bounds x="30" y="149" width="2440" height="254" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_iss_di" bpmnElement="L_iss" isHorizontal="true"><dc:Bounds x="30" y="403" width="2440" height="359" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_worker_di" bpmnElement="P_worker" isHorizontal="true"><dc:Bounds x="0" y="802" width="890" height="60" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_disp_di" bpmnElement="P_disp" isHorizontal="true"><dc:Bounds x="910" y="802" width="1560" height="60" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_manual_di" bpmnElement="S_manual" isExpanded="true"><dc:Bounds x="1275" y="250" width="355" height="147" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="r_start_di" bpmnElement="r_start"><dc:Bounds x="102" y="56" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="r_submit_di" bpmnElement="r_submit"><dc:Bounds x="172" y="32" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_persist_di" bpmnElement="i_persist"><dc:Bounds x="358" y="540" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_suggest_di" bpmnElement="i_suggest"><dc:Bounds x="542" y="540" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_reopen_di" bpmnElement="a_reopen"><dc:Bounds x="604" y="206" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_triage_di" bpmnElement="a_triage"><dc:Bounds x="728" y="182" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_coord_di" bpmnElement="a_coord"><dc:Bounds x="912" y="182" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_relink_di" bpmnElement="a_relink"><dc:Bounds x="974" y="310" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_approved_di" bpmnElement="i_approved"><dc:Bounds x="1098" y="540" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_merge_di" bpmnElement="i_merge"><dc:Bounds x="1290" y="558" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_evgw_di" bpmnElement="i_evgw"><dc:Bounds x="1380" y="558" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_progress_di" bpmnElement="i_progress"><dc:Bounds x="1462" y="436" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_done_di" bpmnElement="i_done"><dc:Bounds x="1462" y="540" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_declined_di" bpmnElement="i_declined"><dc:Bounds x="1462" y="646" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_tocoord_di" bpmnElement="i_tocoord"><dc:Bounds x="1710" y="670" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_relink_di" bpmnElement="i_relink"><dc:Bounds x="1297" y="670" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_validate_di" bpmnElement="a_validate"><dc:Bounds x="1648" y="182" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_ok_di" bpmnElement="a_ok"><dc:Bounds x="1845" y="198" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="1825" y="166" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_close_di" bpmnElement="a_close"><dc:Bounds x="1932" y="182" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_rework_di" bpmnElement="a_rework"><dc:Bounds x="1932" y="286" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a_tolink_di" bpmnElement="a_tolink"><dc:Bounds x="2127" y="310" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_emit_di" bpmnElement="i_emit"><dc:Bounds x="2198" y="540" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i_end_di" bpmnElement="i_end"><dc:Bounds x="2392" y="564" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_start_di" bpmnElement="e_start"><dc:Bounds x="1277" y="310" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_rec_di" bpmnElement="e_rec"><dc:Bounds x="1355" y="286" width="160" height="84" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_end_di" bpmnElement="e_end"><dc:Bounds x="1534" y="310" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F_r_start_r_submit_di" bpmnElement="F_r_start_r_submit"><di:waypoint x="138" y="74" /><di:waypoint x="172" y="74" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r_submit_i_persist_di" bpmnElement="F_r_submit_i_persist"><di:waypoint x="332" y="74" /><di:waypoint x="438" y="74" /><di:waypoint x="438" y="540" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_persist_i_suggest_di" bpmnElement="F_i_persist_i_suggest"><di:waypoint x="518" y="582" /><di:waypoint x="542" y="582" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_suggest_a_triage_di" bpmnElement="F_i_suggest_a_triage"><di:waypoint x="702" y="582" /><di:waypoint x="808" y="582" /><di:waypoint x="808" y="266" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_reopen_a_triage_di" bpmnElement="F_a_reopen_a_triage"><di:waypoint x="640" y="224" /><di:waypoint x="728" y="224" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_triage_a_coord_di" bpmnElement="F_a_triage_a_coord"><di:waypoint x="888" y="224" /><di:waypoint x="912" y="224" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_relink_a_coord_di" bpmnElement="F_a_relink_a_coord"><di:waypoint x="992" y="310" /><di:waypoint x="992" y="266" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_coord_i_approved_di" bpmnElement="F_a_coord_i_approved"><di:waypoint x="1072" y="224" /><di:waypoint x="1178" y="224" /><di:waypoint x="1178" y="540" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_approved_i_merge_di" bpmnElement="F_i_approved_i_merge"><di:waypoint x="1258" y="582" /><di:waypoint x="1290" y="582" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_merge_i_evgw_di" bpmnElement="F_i_merge_i_evgw"><di:waypoint x="1340" y="582" /><di:waypoint x="1380" y="582" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_evgw_i_progress_di" bpmnElement="F_i_evgw_i_progress"><di:waypoint x="1405" y="558" /><di:waypoint x="1405" y="478" /><di:waypoint x="1462" y="478" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_evgw_i_done_di" bpmnElement="F_i_evgw_i_done"><di:waypoint x="1430" y="582" /><di:waypoint x="1462" y="582" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_evgw_i_declined_di" bpmnElement="F_i_evgw_i_declined"><di:waypoint x="1405" y="608" /><di:waypoint x="1405" y="688" /><di:waypoint x="1462" y="688" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_relink_i_merge_di" bpmnElement="F_i_relink_i_merge"><di:waypoint x="1315" y="670" /><di:waypoint x="1315" y="608" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_declined_i_tocoord_di" bpmnElement="F_i_declined_i_tocoord"><di:waypoint x="1622" y="688" /><di:waypoint x="1710" y="688" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_done_a_validate_di" bpmnElement="F_i_done_a_validate"><di:waypoint x="1622" y="582" /><di:waypoint x="1728" y="582" /><di:waypoint x="1728" y="266" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_validate_a_ok_di" bpmnElement="F_a_validate_a_ok"><di:waypoint x="1808" y="224" /><di:waypoint x="1845" y="224" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_rework_a_tolink_di" bpmnElement="F_a_rework_a_tolink"><di:waypoint x="2092" y="328" /><di:waypoint x="2127" y="328" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_close_i_emit_di" bpmnElement="F_a_close_i_emit"><di:waypoint x="2092" y="224" /><di:waypoint x="2278" y="224" /><di:waypoint x="2278" y="540" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_emit_i_end_di" bpmnElement="F_i_emit_i_end"><di:waypoint x="2358" y="582" /><di:waypoint x="2392" y="582" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_e_start_e_rec_di" bpmnElement="F_e_start_e_rec"><di:waypoint x="1313" y="328" /><di:waypoint x="1355" y="328" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_e_rec_e_end_di" bpmnElement="F_e_rec_e_end"><di:waypoint x="1515" y="328" /><di:waypoint x="1534" y="328" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_i_progress_i_merge_di" bpmnElement="F_i_progress_i_merge"><di:waypoint x="1542" y="436" /><di:waypoint x="1542" y="418" /><di:waypoint x="1315" y="418" /><di:waypoint x="1315" y="558" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_ok_a_close_di" bpmnElement="F_a_ok_a_close"><di:waypoint x="1895" y="224" /><di:waypoint x="1932" y="224" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_a_ok_a_rework_di" bpmnElement="F_a_ok_a_rework"><di:waypoint x="1870" y="248" /><di:waypoint x="1870" y="328" /><di:waypoint x="1932" y="328" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_i_suggest_P_worker_di" bpmnElement="M_i_suggest_P_worker"><di:waypoint x="600" y="624" /><di:waypoint x="600" y="802" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_P_worker_i_suggest_di" bpmnElement="M_P_worker_i_suggest"><di:waypoint x="644" y="802" /><di:waypoint x="644" y="624" /><bpmndi:BPMNLabel><dc:Bounds x="650" y="772" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_a_coord_P_disp_di" bpmnElement="M_a_coord_P_disp"><di:waypoint x="952" y="266" /><di:waypoint x="952" y="802" /><bpmndi:BPMNLabel><dc:Bounds x="958" y="772" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_P_disp_i_approved_di" bpmnElement="M_P_disp_i_approved"><di:waypoint x="1178" y="802" /><di:waypoint x="1178" y="624" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_P_disp_i_declined_di" bpmnElement="M_P_disp_i_declined"><di:waypoint x="1542" y="802" /><di:waypoint x="1542" y="730" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_disp_done_di" bpmnElement="M_disp_done"><di:waypoint x="1644" y="802" /><di:waypoint x="1644" y="634" /><di:waypoint x="1582" y="634" /><di:waypoint x="1582" y="624" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_disp_prog_di" bpmnElement="M_disp_prog"><di:waypoint x="1658" y="802" /><di:waypoint x="1658" y="478" /><di:waypoint x="1622" y="478" /><bpmndi:BPMNLabel><dc:Bounds x="1664" y="772" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_a_rework_P_disp_di" bpmnElement="M_a_rework_P_disp"><di:waypoint x="2012" y="370" /><di:waypoint x="2012" y="802" /><bpmndi:BPMNLabel><dc:Bounds x="2018" y="772" width="90" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_i_emit_P_disp_di" bpmnElement="M_i_emit_P_disp"><di:waypoint x="2278" y="624" /><di:waypoint x="2278" y="802" /><bpmndi:BPMNLabel><dc:Bounds x="2282" y="772" width="90" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,431 @@
+<!doctype html>
+<!--
+  BMC domain model (DDD level 3): source of documents/diagrams/domain-model.png.
+  Edit the boxes below; connectors are listed in EDGES at the end of the file.
+  Re-export by opening this file in a browser and taking a full-page screenshot
+  (or with any headless browser), then replace domain-model.png.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMC domain model</title>
+<style>
+  :root {
+    --ink: #1f2328; --muted: #57606a; --line: #444c56;
+    --root: #ffe3a3; --root-b: #c98a12;
+    --ent: #d6e8fa; --ent-b: #3d6fa8;
+    --vo: #dff2d8; --vo-b: #4c8a3e;
+    --acl: #f6d5e5; --acl-b: #a83c73;
+    --ext: #eeeeee; --ext-b: #777;
+    --cross: #b03a2e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: var(--ink); font: 12px/1.35 Arial, Helvetica, sans-serif; }
+  #canvas { position: relative; width: 2460px; padding: 22px 24px 26px; background: #fff; }
+  h1 { margin: 0 0 2px; font-size: 22px; }
+  .sub { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+
+  .bc { position: relative; border: 2.5px solid #2f3a45; border-radius: 14px; padding: 34px 16px 16px; background: #f6f8fa; }
+  .bc > .bc-name { position: absolute; top: 8px; left: 16px; font-size: 15px; font-weight: bold; }
+  .bc > .bc-name small { font-weight: normal; color: var(--muted); font-size: 12px; margin-left: 6px; }
+
+  .grp { position: relative; border: 1.5px solid #8c959f; border-radius: 10px; padding: 28px 12px 12px; background: #fff; }
+  .grp > .grp-name { position: absolute; top: 6px; left: 12px; font-weight: bold; font-size: 13px; color: #24292f; }
+  .grp > .grp-name::before { content: "Domain group · "; font-weight: normal; color: var(--muted); }
+
+  .agg { position: relative; border: 1.6px dashed #6e7781; border-radius: 8px; padding: 24px 10px 10px; background: #fcfcfd; }
+  .agg > .agg-name { position: absolute; top: 5px; left: 10px; font-size: 11.5px; font-weight: bold; color: #57606a; }
+  .agg > .agg-name::after { content: " aggregate"; font-weight: normal; }
+
+  .cls { position: relative; z-index: 2; width: auto; min-width: 200px; max-width: 290px; border: 1.5px solid; border-radius: 5px; overflow: hidden; }
+  .cls .hd { padding: 4px 6px 4px; text-align: center; border-bottom: 1px solid rgba(0,0,0,.25); }
+  .cls .st { display: block; font-size: 10.5px; font-style: italic; color: #444; }
+  .cls .nm { font-weight: bold; font-size: 13px; }
+  .cls ul { margin: 0; padding: 4px 7px 5px; list-style: none; background: rgba(255,255,255,.55); }
+  .cls li { white-space: nowrap; font-family: Consolas, "DejaVu Sans Mono", monospace; font-size: 11px; line-height: 1.45; }
+  .cls li.inv { margin-top: 3px; padding-top: 3px; border-top: 1px dotted #999; font-family: Arial, sans-serif; font-style: italic; color: #333; white-space: normal; }
+  .root { background: var(--root); border-color: var(--root-b); }
+  .ent  { background: var(--ent);  border-color: var(--ent-b); }
+  .vo   { background: var(--vo);   border-color: var(--vo-b); }
+  .acl  { background: var(--acl);  border-color: var(--acl-b); }
+  .ext  { background: var(--ext);  border-color: var(--ext-b); border-style: dashed; }
+  .narrow { min-width: 168px; }
+
+  .row { display: flex; gap: 14px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .center { justify-content: center; }
+  .gap-lg { gap: 30px; }
+
+  .ctxmap { margin: 18px 0 0; padding: 10px 14px; border: 1px solid #d0d7de; border-radius: 8px; background: #fff8f6; font-size: 12.5px; }
+  .ctxmap b { color: var(--cross); }
+
+  .legend { display: grid; grid-template-columns: auto 1fr auto 1fr auto 1fr; gap: 6px 10px; align-items: center; margin-top: 18px; padding: 10px 14px; border: 1px solid #d0d7de; border-radius: 8px; font-size: 12px; }
+  .sw { width: 34px; height: 18px; border: 1.5px solid; border-radius: 4px; }
+  .lnk { width: 46px; height: 18px; }
+
+  svg#wires { position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; overflow: visible; }
+  .wl { font: 11px Arial, sans-serif; fill: #24292f; }
+  .wl.cross { fill: var(--cross); font-weight: bold; }
+  .card { font: bold 11px Arial, sans-serif; fill: #24292f; }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <h1>BMC — domain model (DDD, level 3)</h1>
+  <p class="sub">Bounded contexts → domain groups → aggregates (root, entities, value objects) · EN-01-02 proposal, 2026-10-20 · rules in the technical design §2–§4</p>
+
+  <!-- ===================== ISSUE MANAGEMENT ===================== -->
+  <div class="bc" id="BC_ISSUE">
+    <div class="bc-name">Issue Management — bounded context <small>Issue Service · database <code>issue</code></small></div>
+    <div class="row" style="gap:36px">
+
+      <!-- left column -->
+      <div class="col" style="gap:16px">
+        <div class="grp">
+          <div class="grp-name">Communication and audit</div>
+          <div class="row">
+            <div class="agg"><div class="agg-name">Notification</div>
+              <div class="cls root" id="Notification"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">Notification</span></div>
+                <ul><li>notificationId : NotificationId</li><li>eventId : EventId</li><li>recipientUserId : UserId</li><li>channel : in_app</li><li>deliveryState</li>
+                <li class="inv">unique (eventId, recipient, channel)</li></ul></div>
+            </div>
+            <div class="agg"><div class="agg-name">Issue audit</div>
+              <div class="cls root" id="IssueAuditEvent"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">IssueAuditEvent</span></div>
+                <ul><li>actorId : UserId</li><li>action</li><li>targetRef</li><li>resultingVersion</li><li>at</li><li>correlationId</li>
+                <li class="inv">append-only; no free text</li></ul></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grp" id="G_ORG">
+          <div class="grp-name">Organisation and access</div>
+          <div class="row" style="gap:96px">
+            <div class="col" style="gap:24px">
+              <div class="agg"><div class="agg-name">User</div>
+                <div class="col gap-lg">
+                  <div class="cls root" id="User"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">User</span></div>
+                    <ul><li>userId : UserId</li><li>displayName</li><li>credential : Credential</li></ul></div>
+                  <div class="cls vo" id="Credential"><div class="hd"><span class="st">«Value object»</span><span class="nm">Credential</span></div>
+                    <ul><li>passwordHash : argon2id</li><li>refreshTokens : hashed, rotated</li></ul></div>
+                </div>
+              </div>
+              <div class="agg"><div class="agg-name">Organisation</div>
+                <div class="cls root" id="Organisation"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">Organisation</span></div>
+                  <ul><li>organisationId : OrganisationId</li><li>name</li></ul></div>
+              </div>
+            </div>
+            <div class="col" style="gap:24px">
+              <div class="agg"><div class="agg-name">Membership</div>
+                <div class="cls root" id="Membership"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">Membership</span></div>
+                  <ul><li>membershipId : MembershipId</li><li>userId : UserId</li><li>buildingId : BuildingId</li><li>role : resident | administrator</li><li>status</li><li>validity : Period</li>
+                  <li class="inv">unique (userId, buildingId, role); a global account grants no access</li></ul></div>
+              </div>
+              <div class="agg"><div class="agg-name">Building</div>
+                <div class="col gap-lg">
+                  <div class="cls root" id="Building"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">Building</span></div>
+                    <ul><li>buildingId : BuildingId</li><li>organisationId : OrganisationId</li><li>name</li></ul></div>
+                  <div class="cls ent" id="Area"><div class="hd"><span class="st">«Entity»</span><span class="nm">Area</span></div>
+                    <ul><li>areaId : AreaId</li><li>label</li><li>kind : common | unit</li></ul></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- middle column -->
+      <div class="grp" style="flex:1">
+        <div class="grp-name">Reporting and tracking</div>
+        <div class="row" style="gap:16px; justify-content:space-between">
+          <div class="agg"><div class="agg-name">Report</div>
+            <div class="cls root" id="Report" style="width:250px"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">Report</span></div>
+              <ul><li>reportId : ReportId</li><li>issueId : IssueId</li><li>buildingId : BuildingId</li><li>areaId : AreaId</li><li>authorUserId : UserId</li><li>text : PrivateText</li><li>source : resident | admin_on_behalf</li><li>submittedAt</li>
+              <li class="inv">raw text visible to author and building administrators only</li></ul></div>
+          </div>
+          <div class="agg"><div class="agg-name">Impact confirmation</div>
+            <div class="cls root" id="ImpactConfirmation"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">ImpactConfirmation</span></div>
+              <ul><li>issueId : IssueId</li><li>userId : UserId</li><li>confirmedAt</li>
+              <li class="inv">unique (issueId, userId); separate aggregate so confirmations never conflict with Issue versions; never changes urgency</li></ul></div>
+          </div>
+        </div>
+        <div class="agg" id="AGG_ISSUE" style="margin-top:22px">
+          <div class="agg-name">Issue</div>
+          <div class="row center"><div class="cls root" id="Issue" style="width:300px"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">Issue</span></div>
+            <ul><li>issueId : IssueId</li><li>buildingId : BuildingId</li><li>areaId : AreaId</li><li>state : IssueState</li><li>version : int</li><li>classification : Classification [0..1]</li><li>publishedSummary : PublishedSummary [0..1]</li><li>resolution : Resolution [0..1]</li><li>activeIntervention : InterventionProjection [0..1]</li>
+            <li class="inv">transitions only as listed in §3.1; stale version → 409</li></ul></div></div>
+          <div class="row" style="margin-top:44px; gap:12px; justify-content:space-between">
+            <div class="cls ent narrow" id="TriageDecision"><div class="hd"><span class="st">«Entity»</span><span class="nm">TriageDecision</span></div>
+              <ul><li>classification</li><li>actorId : UserId</li><li>reason</li><li>resultingVersion</li><li>decidedAt</li></ul></div>
+            <div class="cls ent narrow" id="HistoryEntry"><div class="hd"><span class="st">«Entity»</span><span class="nm">HistoryEntry</span></div>
+              <ul><li>sequence</li><li>type</li><li>visibility : public | internal</li><li>actorRole</li><li>occurredAt</li></ul></div>
+            <div class="cls vo narrow" id="Classification"><div class="hd"><span class="st">«Value object»</span><span class="nm">Classification</span></div>
+              <ul><li>category</li><li>urgency</li></ul></div>
+            <div class="cls vo narrow" id="PublishedSummary"><div class="hd"><span class="st">«Value object»</span><span class="nm">PublishedSummary</span></div>
+              <ul><li>sanitisedText</li><li>publishedBy : UserId</li><li>publishedAt</li></ul></div>
+            <div class="cls vo narrow" id="Resolution"><div class="hd"><span class="st">«Value object»</span><span class="nm">Resolution</span></div>
+              <ul><li>kind : validated | manual</li><li>reason</li><li>actorId : UserId</li><li>at</li></ul></div>
+            <div class="cls vo narrow" id="InterventionProjection"><div class="hd"><span class="st">«Value object»</span><span class="nm">InterventionProjection</span></div>
+              <ul><li>interventionId</li><li>interventionState</li><li>lastAppliedVersion</li></ul></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- right column -->
+      <div class="grp" id="G_TRIAGE">
+        <div class="grp-name">Triage</div>
+        <div class="col" style="gap:16px">
+          <div class="agg"><div class="agg-name">Triage job</div>
+            <div class="cls root" id="TriageJob"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">TriageJob</span></div>
+              <ul><li>jobId : TriageJobId</li><li>issueId : IssueId</li><li>issueVersion</li><li>status</li><li>attempts</li><li>leaseUntil</li>
+              <li class="inv">claimed with a lease (SKIP LOCKED); limited attempts</li></ul></div>
+          </div>
+          <div class="agg"><div class="agg-name">Triage suggestion</div>
+            <div class="col gap-lg">
+              <div class="cls root" id="TriageSuggestion"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">TriageSuggestion</span></div>
+                <ul><li>suggestionId : SuggestionId</li><li>issueId : IssueId</li><li>sourceIssueVersion</li><li>classification</li><li>rationale</li><li>origin : ai | rules | fallback</li><li>provenance : Provenance</li>
+                <li class="inv">unverified until a TriageDecision; never overwrites one</li></ul></div>
+              <div class="cls vo" id="Provenance"><div class="hd"><span class="st">«Value object»</span><span class="nm">Provenance</span></div>
+                <ul><li>modelVersion</li><li>promptVersion</li><li>rulesVersion</li><li>createdAt</li></ul></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- external: triage worker -->
+      <div class="col" style="justify-content:flex-start; padding-top:40px">
+        <div class="cls ext narrow" id="TriageWorker"><div class="hd"><span class="st">«External process»</span><span class="nm">Triage worker</span></div>
+          <ul><li class="inv" style="border:0;margin:0;padding:0">No data of its own; claims and completes jobs through Issue's internal API and calls the AI provider</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:48px"></div>
+
+  <!-- ===================== INTERVENTION COORDINATION ===================== -->
+  <div class="bc" id="BC_DISPATCH">
+    <div class="bc-name">Intervention Coordination — bounded context <small>Dispatch Service · database <code>dispatch</code></small></div>
+    <div class="row" style="gap:16px">
+
+      <div class="grp">
+        <div class="grp-name">Catalogue</div>
+        <div class="agg"><div class="agg-name">Contractor</div>
+          <div class="cls root" id="Contractor"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">Contractor</span></div>
+            <ul><li>contractorId : ContractorId</li><li>userId : UserId</li><li>specialisations : Set&lt;Specialisation&gt;</li><li>coverage : Set&lt;BuildingId&gt;</li><li>active : bool</li>
+            <li class="inv">synthetic catalogue in the MVP</li></ul></div>
+        </div>
+      </div>
+
+      <div class="grp" id="G_INTV" style="flex:1">
+        <div class="grp-name">Intervention</div>
+        <div class="agg" id="AGG_INTERVENTION">
+          <div class="agg-name">Intervention</div>
+          <div class="row center"><div class="cls root" id="Intervention" style="width:300px"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">Intervention</span></div>
+            <ul><li>interventionId : InterventionId</li><li>issueId : IssueId</li><li>buildingId : BuildingId (snapshot)</li><li>contractorId : ContractorId</li><li>state : InterventionState</li><li>version : int</li><li>currentProposalVersion</li><li>approvedProposalVersion [0..1]</li><li>context : AuthorisationSnapshot</li>
+            <li class="inv">at most one non-terminal per issue; transitions only as listed in §3.2</li></ul></div></div>
+          <div class="row" style="margin-top:44px; gap:12px; justify-content:space-between">
+            <div class="col gap-lg">
+              <div class="cls ent" id="ProposalVersion"><div class="hd"><span class="st">«Entity»</span><span class="nm">ProposalVersion</span></div>
+              <ul><li>number</li><li>author : admin | contractor</li><li>scopeExtract : sanitised</li><li>window : TimeWindow</li><li>terms</li><li>costEstimate : Money [0..1]</li><li>status</li></ul></div>
+              <div class="cls vo narrow" id="TimeWindow"><div class="hd"><span class="st">«Value object»</span><span class="nm">TimeWindow</span></div>
+              <ul><li>start</li><li>end</li><li class="inv">start &lt; end</li></ul></div>
+            </div>
+            <div class="cls ent" id="ContractorResponse"><div class="hd"><span class="st">«Entity»</span><span class="nm">ContractorResponse</span></div>
+              <ul><li>proposalVersion</li><li>decision : accept | decline |</li><li>&nbsp;&nbsp;counterpropose</li><li>reason</li><li>respondedAt</li></ul></div>
+            <div class="cls ent narrow" id="CompletionReport"><div class="hd"><span class="st">«Entity»</span><span class="nm">CompletionReport</span></div>
+              <ul><li>notes</li><li>proposedCost : Money [0..1]</li><li>reportedAt</li></ul></div>
+            <div class="cls vo narrow" id="AuthorisationSnapshot"><div class="hd"><span class="st">«Value object»</span><span class="nm">AuthorisationSnapshot</span></div>
+              <ul><li>issueVersion</li><li>checkedAt</li></ul></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="gap:16px">
+        <div class="grp">
+          <div class="grp-name">Scheduling</div>
+          <div class="row" style="gap:16px; align-items:flex-end">
+            <div class="agg"><div class="agg-name">Booking</div>
+              <div class="cls root" id="Booking" style="width:240px"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">Booking</span></div>
+                <ul><li>bookingId : BookingId</li><li>interventionId : InterventionId</li><li>window : TimeWindow</li><li>state : BookingState</li><li>source : calendar | manual</li><li>externalRef [0..1]</li><li>attempts</li><li>lastReconciledAt</li>
+                <li class="inv">bookingId is also the external request ID; at most one active per intervention</li></ul></div>
+            </div>
+            <div class="cls acl" id="CalendarAdapter"><div class="hd"><span class="st">«Anti-corruption layer»</span><span class="nm">CalendarAdapter</span></div>
+              <ul><li>create(request, key)</li><li>findByRequestId(id)</li><li>cancel(externalRef)</li></ul></div>
+          </div>
+        </div>
+        <div class="grp">
+          <div class="grp-name">Costs and audit</div>
+          <div class="row" style="gap:16px">
+            <div class="agg"><div class="agg-name">Cost record</div>
+              <div class="col gap-lg">
+                <div class="cls root" id="CostRecord"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">CostRecord</span></div>
+                  <ul><li>costRecordId : CostRecordId</li><li>interventionId : InterventionId</li><li>amount : Money [0..1]</li><li>source</li><li>confirmedBy : UserId [0..1]</li></ul></div>
+                <div class="cls vo" id="Money"><div class="hd"><span class="st">«Value object»</span><span class="nm">Money</span></div>
+                  <ul><li>amount : decimal ≥ 0</li><li>currency : ISO 4217</li></ul></div>
+              </div>
+            </div>
+            <div class="agg"><div class="agg-name">Dispatch audit</div>
+              <div class="cls root narrow" id="DispatchAuditEvent"><div class="hd"><span class="st">«Aggregate root»</span><span class="nm">DispatchAuditEvent</span></div>
+                <ul><li>actorId : UserId</li><li>action</li><li>targetRef</li><li>resultingVersion</li><li>at</li><li>correlationId</li></ul></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="justify-content:flex-start; padding-top:60px">
+        <div class="cls ext narrow" id="Calendar"><div class="hd"><span class="st">«External system»</span><span class="nm">Calendar simulator</span></div>
+          <ul><li class="inv" style="border:0;margin:0;padding:0">In-memory bookings; fault scenarios (ADR-006 proposal)</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctxmap" id="CTXMAP">
+    <b>Context map.</b> Intervention Coordination is <b>downstream</b> (customer/supplier) of Issue Management. Issue offers an <b>open host service</b> (internal <code>dispatch-context</code> and membership API, §4.3) and a <b>published language</b> (event envelope and catalogue, §4.4). Dispatch publishes intervention events that Issue validates and projects. The calendar simulator is integrated through an <b>anti-corruption layer</b> (§4.5). One database per service; no shared tables; cross-context references are IDs only.
+  </div>
+
+  <div class="legend">
+    <div class="sw root"></div><div>Aggregate root: consistency and transaction boundary</div>
+    <div class="sw ent"></div><div>Entity inside an aggregate (identity within it)</div>
+    <div class="sw vo"></div><div>Value object (immutable, no identity)</div>
+    <div class="sw acl"></div><div>Anti-corruption layer</div>
+    <div class="sw ext"></div><div>Process or system outside the contexts</div>
+    <div class="sw" style="border-style:dashed;border-color:#6e7781"></div><div>Aggregate · grey box: domain group · dark box: bounded context</div>
+    <svg class="lnk"><line x1="2" y1="9" x2="44" y2="9" stroke="#444c56" stroke-width="1.5"/><path d="M2 9 l6 -4 l6 4 l-6 4 z" fill="#444c56"/></svg><div>Composition inside one aggregate, with multiplicity</div>
+    <svg class="lnk"><line x1="2" y1="9" x2="40" y2="9" stroke="#444c56" stroke-width="1.3" stroke-dasharray="5 3"/><path d="M36 5 l7 4 l-7 4" fill="none" stroke="#444c56" stroke-width="1.3"/></svg><div>Reference to another aggregate by ID (typed attribute)</div>
+    <svg class="lnk"><line x1="2" y1="9" x2="40" y2="9" stroke="#b03a2e" stroke-width="2" stroke-dasharray="6 3"/><path d="M36 5 l7 4 l-7 4" fill="none" stroke="#b03a2e" stroke-width="2"/></svg><div>Cross-context: IDs, internal API or events only</div>
+  </div>
+  <p class="sub" style="margin:8px 0 0">References to users as actors (authorUserId, actorId, confirmedBy, userId in ImpactConfirmation) are shown as typed attributes only, to keep the figure readable.</p>
+  <svg id="wires"></svg>
+</div>
+
+<script>
+// Connectors. from/to: element ids; fs/ts: side (top|bottom|left|right); fo/to2: offset along the side (px);
+// kind: comp (composition) | ref (by ID) | cross (cross-context); bus: elbow distance from the source (px).
+const EDGES = [
+  // compositions inside aggregates
+  { from: 'Building', to: 'Area', fs: 'bottom', ts: 'top', kind: 'comp', card: '1..*' },
+  { from: 'User', to: 'Credential', fs: 'bottom', ts: 'top', kind: 'comp', card: '1' },
+  ...['TriageDecision', 'HistoryEntry', 'Classification', 'PublishedSummary', 'Resolution', 'InterventionProjection']
+    .map((t, i) => ({ from: 'Issue', to: t, fs: 'bottom', ts: 'top', kind: 'comp', bus: 22, card: ['0..*', '1..*', '0..1', '0..1', '0..1', '0..1'][i] })),
+  { from: 'TriageSuggestion', to: 'Provenance', fs: 'bottom', ts: 'top', kind: 'comp', card: '1' },
+  ...['ProposalVersion', 'ContractorResponse', 'CompletionReport', 'AuthorisationSnapshot']
+    .map((t, i) => ({ from: 'Intervention', to: t, fs: 'bottom', ts: 'top', kind: 'comp', bus: 22, card: ['1..*', '0..*', '0..1', '1'][i] })),
+  { from: 'ProposalVersion', to: 'TimeWindow', fs: 'bottom', ts: 'top', kind: 'comp', card: '1' },
+  { from: 'CostRecord', to: 'Money', fs: 'bottom', ts: 'top', kind: 'comp', card: '0..1' },
+
+  // references to other aggregates (by ID)
+  { from: 'Building', to: 'Organisation', fs: 'left', ts: 'right', kind: 'ref', label: 'organisationId', lpos: (p) => [(p[0][0] + p[p.length - 1][0]) / 2, Math.min(p[0][1], p[p.length - 1][1]) - 10] },
+  { from: 'Membership', to: 'User', fs: 'left', ts: 'right', kind: 'ref', label: 'userId', ldy: -10, fo: -30 },
+  { from: 'Membership', to: 'Building', fs: 'bottom', ts: 'top', kind: 'ref', label: 'buildingId', lside: 'right' },
+  { from: 'Notification', to: 'User', fs: 'bottom', ts: 'top', kind: 'ref', label: 'recipientUserId', lside: 'right' },
+  { from: 'Report', to: 'Issue', fs: 'bottom', ts: 'left', kind: 'ref', label: 'issueId', lside: 'right', to2: -40 },
+  { from: 'Report', to: 'Area', fs: 'left', ts: 'right', kind: 'ref', label: 'areaId', fo: 60, lside: 'right', lt: 0.75,
+    mx: (R) => R('G_ORG').x + R('G_ORG').w + 10 },
+  { from: 'Issue', to: 'Building', fs: 'left', ts: 'right', kind: 'ref', label: 'buildingId', fo: 40, lseg: 0,
+    mx: (R) => R('G_ORG').x + R('G_ORG').w + 24 },
+  { from: 'ImpactConfirmation', to: 'Issue', fs: 'bottom', ts: 'right', kind: 'ref', label: 'issueId', lside: 'left', to2: -60 },
+  { from: 'TriageJob', to: 'Issue', fs: 'left', ts: 'right', kind: 'ref', label: 'issueId', to2: -25, lside: 'left',
+    mx: (R) => R('G_TRIAGE').x - 9 },
+  { from: 'TriageSuggestion', to: 'Issue', fs: 'left', ts: 'right', kind: 'ref', label: 'issueId', to2: 30,
+    mx: (R) => R('G_TRIAGE').x - 9 },
+  { from: 'Intervention', to: 'Contractor', fs: 'left', ts: 'right', kind: 'ref', label: 'contractorId' },
+  { from: 'Booking', to: 'Intervention', fs: 'left', ts: 'right', kind: 'ref', label: 'interventionId', to2: -40, lside: 'right', ldy: -10,
+    mx: (R) => R('G_INTV').x + R('G_INTV').w + 8 },
+  { from: 'CostRecord', to: 'Intervention', fs: 'left', ts: 'right', kind: 'ref', label: 'interventionId', to2: 40, lside: 'right',
+    mx: (R) => R('G_INTV').x + R('G_INTV').w + 8 },
+  { from: 'Booking', to: 'CalendarAdapter', fs: 'right', ts: 'left', kind: 'ref', label: 'uses', ldy: -10 },
+
+  // cross-context relations
+  { from: 'Contractor', to: 'User', fs: 'top', ts: 'left', kind: 'cross', label: 'userId (login account)', to2: -12, lseg: 1, ldy: -11,
+    via: (R, p1, p2) => { const bc = R('BC_ISSUE'); const y = bc.y + bc.h + 24; const x = bc.x + 8; return [[p1[0], y], [x, y], [x, p2[1]]]; } },
+  { from: 'Intervention', to: 'AGG_ISSUE', fs: 'top', ts: 'bottom', kind: 'cross', fo: -50, straightX: true, label: 'issueId; context via open host service (§4.3)', lside: 'left' },
+  { from: 'AGG_ISSUE', to: 'Intervention', fs: 'bottom', ts: 'top', kind: 'cross', to2: 50, straightX: 'target', label: 'projection from published events (§4.4)', lside: 'right' },
+  { from: 'TriageWorker', to: 'TriageJob', fs: 'left', ts: 'right', kind: 'cross' },
+  { from: 'CalendarAdapter', to: 'Calendar', fs: 'right', ts: 'left', kind: 'cross', label: 'contract §4.5', ldy: -12 },
+];
+
+const canvas = document.getElementById('canvas');
+const svg = document.getElementById('wires');
+const NS = 'http://www.w3.org/2000/svg';
+const base = canvas.getBoundingClientRect();
+svg.setAttribute('width', canvas.scrollWidth);
+svg.setAttribute('height', canvas.scrollHeight);
+
+function rect(id) {
+  const r = document.getElementById(id).getBoundingClientRect();
+  return { x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
+}
+function side(r, s, off = 0) {
+  if (s === 'top') return [r.x + r.w / 2 + off, r.y];
+  if (s === 'bottom') return [r.x + r.w / 2 + off, r.y + r.h];
+  if (s === 'left') return [r.x, r.y + r.h / 2 + off];
+  return [r.x + r.w, r.y + r.h / 2 + off];
+}
+const vert = (s) => s === 'top' || s === 'bottom';
+function route(e) {
+  let A = rect(e.from), B = rect(e.to);
+  if (e.toEl) { const c = rect(e.toEl); B = { x: B.x, y: B.y, w: B.w, h: c.y + c.h - B.y }; }
+  let p1 = side(A, e.fs, e.fo || 0), p2 = side(B, e.ts, e.to2 || 0);
+  if (e.straightX === true) p2 = [p1[0], p2[1]];
+  if (e.straightX === 'target') p1 = [p2[0], p1[1]];
+  if (e.via) return [p1, ...e.via(rect, p1, p2), p2];
+  if (e.mx) { const x = e.mx(rect); return [p1, [x, p1[1]], [x, p2[1]], p2]; }
+  if (e.below) { const y = Math.max(p1[1], p2[1]) + e.below; return [p1, [p1[0], y], [p2[0], y], p2]; }
+  if (e.right) { const x = Math.max(p1[0], p2[0]) + e.right; return [p1, [x, p1[1]], [x, p2[1]], p2]; }
+  if (vert(e.fs) && vert(e.ts) && Math.abs(p1[0] - p2[0]) < 0.5) return [p1, p2];
+  if (vert(e.fs) && vert(e.ts)) {
+    const my = e.bus ? p1[1] + e.bus : (p1[1] + p2[1]) / 2;
+    return [p1, [p1[0], my], [p2[0], my], p2];
+  }
+  if (!vert(e.fs) && !vert(e.ts)) { const mx = (p1[0] + p2[0]) / 2; return [p1, [mx, p1[1]], [mx, p2[1]], p2]; }
+  if (vert(e.fs)) return [p1, [p1[0], p2[1]], p2];
+  return [p1, [p2[0], p1[1]], p2];
+}
+function el(tag, attrs, parent = svg) { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.appendChild(n); return n; }
+function arrowHead(p, q, color, w) { // open arrow at q pointing from p
+  const a = Math.atan2(q[1] - p[1], q[0] - p[0]), L = 9, s = 0.45;
+  el('path', { d: `M${q[0] - L * Math.cos(a - s)} ${q[1] - L * Math.sin(a - s)} L${q[0]} ${q[1]} L${q[0] - L * Math.cos(a + s)} ${q[1] - L * Math.sin(a + s)}`, fill: 'none', stroke: color, 'stroke-width': w });
+}
+function diamond(p, q) { // filled diamond at p pointing towards q
+  const a = Math.atan2(q[1] - p[1], q[0] - p[0]), L = 7, W = 4.5, c = Math.cos(a), s = Math.sin(a);
+  const pts = [[0, 0], [L, W], [2 * L, 0], [L, -W]].map(([x, y]) => [p[0] + x * c - y * s, p[1] + x * s + y * c]);
+  el('path', { d: 'M' + pts.map((t) => t.join(' ')).join(' L') + ' Z', fill: '#444c56' });
+}
+function label(text, x, y, cls, anchor) {
+  const t = el('text', { x, y, class: 'wl ' + (cls || ''), 'text-anchor': anchor || 'middle', 'dominant-baseline': 'middle' });
+  t.textContent = text;
+  const b = t.getBBox();
+  const bg = el('rect', { x: b.x - 3, y: b.y - 1, width: b.width + 6, height: b.height + 2, fill: '#fff', opacity: 0.92, rx: 3 });
+  svg.insertBefore(bg, t);
+}
+const drawnBus = new Set();
+for (const e of EDGES) {
+  const pts = route(e);
+  const color = e.kind === 'cross' ? '#b03a2e' : '#444c56';
+  const width = e.kind === 'cross' ? 2 : 1.4;
+  const dash = e.kind === 'comp' ? '' : e.kind === 'cross' ? '7 4' : '5 3';
+  el('polyline', { points: pts.map((p) => p.join(',')).join(' '), fill: 'none', stroke: color, 'stroke-width': width, 'stroke-dasharray': dash });
+  const n = pts.length;
+  if (e.kind === 'comp') {
+    const key = e.from;
+    if (!drawnBus.has(key)) { diamond(pts[0], pts[1]); drawnBus.add(key); }
+    if (e.card) { const q = pts[n - 1]; const t = el('text', { x: q[0] + 6, y: q[1] - 7, class: 'card' }); t.textContent = e.card; }
+  } else {
+    arrowHead(pts[n - 2], pts[n - 1], color, width);
+  }
+  if (e.label) {
+    // place the label on the longest segment
+    let best = 0, bi = 0;
+    for (let i = 0; i < n - 1; i++) { const d = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); if (d > best) { best = d; bi = i; } }
+    if (e.lseg !== undefined) bi = e.lseg;
+    if (e.lpos) { const [x, y] = e.lpos(pts); label(e.label, x, y, e.kind === 'cross' ? 'cross' : ''); continue; }
+    const f = e.lt === undefined ? 0.5 : e.lt;
+    const mx = pts[bi][0] + (pts[bi + 1][0] - pts[bi][0]) * f, my = pts[bi][1] + (pts[bi + 1][1] - pts[bi][1]) * f;
+    const lx = e.lside === 'left' ? mx - 6 : e.lside === 'right' ? mx + 6 : mx;
+    label(e.label, lx, my + (e.ldy || 0), e.kind === 'cross' ? 'cross' : '', e.lside === 'left' ? 'end' : e.lside === 'right' ? 'start' : 'middle');
+  }
+}
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>
